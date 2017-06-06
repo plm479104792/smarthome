@@ -1,0 +1,263 @@
+package com.homecoo.smarthome.controller;
+
+
+import java.util.Date;
+
+
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import sun.applet.resources.MsgAppletViewer;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.homecoo.smarthome.domain.Message;
+import com.homecoo.smarthome.domain.SmsCode;
+import com.homecoo.smarthome.domain.User;
+import com.homecoo.smarthome.security.UserInfo;
+import com.homecoo.smarthome.service.ISmsCode;
+import com.homecoo.smarthome.service.ISmsCodeH2;
+import com.homecoo.smarthome.service.IUser;
+import com.homecoo.smarthome.util.DynamicDataSource;
+import com.homecoo.smarthome.util.SendSms;
+import com.homecoo.smarthome.util.StandardPasswordEncoderForSha1;
+import com.homecoo.smarthome.util.Uuid16;
+import com.homecoo.smarthome.util.convertByMD5;
+
+
+
+
+
+@Controller
+public class AppUserController {
+
+	public static final String SUCCESS_MESSAGE = "success";
+	public static final String ERROR_MESSAGE = "failed";
+	
+	@Autowired
+	private ISmsCodeH2 smsCodeH2Service;
+
+	@Autowired
+	private ISmsCode smsCodeService;
+
+	@Autowired
+	private IUser userService;
+	
+	@Autowired
+	public UserDetailsService userDetailsService;
+	
+	
+	/**
+	 * @Description:手机App用户注册发送手机验证码,注册的时候需要判断该手机号码是否已经存在(1.不存在，允许注册；2.存在,不允许注册.让去重置密码操作)
+	 * @param :warren
+	 * @return
+	 * @throws Exception
+	 * @test by xiaobai 2016-4-16 OK
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/appSendRegitserCode", method = RequestMethod.POST,produces= { "application/json;charset=UTF-8" })
+	public String appSendRegitserCode(String phonenum) {
+		Message msg=new Message();
+		// 首先查询验证码表上是否已经有该手机号，如果有请更换手机号！，或者重置密码，如果没有允许注册 row=0没有；row=其他 有
+		int row=smsCodeService.getPhoneNum(phonenum);
+		if (row==0) {
+			String  idendifyCode = SendSms.sendMessage(phonenum, 1);
+			SmsCode smsCode = new SmsCode();
+			smsCode.setPhonenum(phonenum);
+			smsCode.setSmscode(idendifyCode);
+			smsCode.setSmscodeType("1");
+			int a=smsCodeService.addSmsCode(smsCode);	
+			
+//			//H2数据库 插入数据
+//			DynamicDataSource.setCustomerType(DynamicDataSource.DATA_SOURCE_H2);
+//			int b=smsCodeH2Service.addSmsCodeH2(smsCode);
+			
+			logger.debug(this.getClass().getName() + "手机号码 :" + phonenum + ", 随机生成验证码 : " + idendifyCode +"注册验证码");
+			if (a!=-1) {
+					msg.setMessageInfo("发送验证码失败");
+					msg.setResult(ERROR_MESSAGE);
+				}else{
+					msg.setMessageInfo("发送验证码成功");
+					msg.setResult(SUCCESS_MESSAGE);
+			}
+		}else{
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("该手机号已经被注册");
+		}
+		String respJson = JSONObject.toJSONString(msg);
+		return respJson;
+	}
+	
+	/**
+	 * @Description:手机App用户重置密码发送手机验证码
+	 * @param :warren
+	 * @return
+	 * @throws Exception
+	 * @test by xiaobai 2016-4-16 OK
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/appSendRePwdCode", method = RequestMethod.POST,produces= { "application/json;charset=UTF-8" })
+	public String appSendRePwdCode(String phonenum) {
+		String  idendifyCode = SendSms.sendMessage(phonenum, 2);
+		Message msg=new Message();
+		SmsCode smsCode = new SmsCode();
+		smsCode.setPhonenum(phonenum);
+		smsCode.setSmscode(idendifyCode);
+		smsCode.setSmscodeType("2");
+		try {
+			smsCodeService.updateSmsCode(smsCode);
+			msg.setResult(SUCCESS_MESSAGE);
+			msg.setMessageInfo("发送验证码到对应手机成功!");
+		logger.debug(this.getClass().getName() + "手机号码 :" + phonenum + ", 随机生成验证码 : " + idendifyCode +"密码验证码");
+		} catch (Exception e) {
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("发送验证码到对应手机失败!");
+			e.printStackTrace();
+		}
+		String respjsonString=JSONObject.toJSONString(msg);
+		return respjsonString;
+		
+	}
+	
+	/**
+	 * @Description:手机App用户发送手机验证码是否成功与失败
+	 * @param :warren
+	 * @return
+	 * @throws Exception
+	 * @test by xiaobai 2016-4-16 OK
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/appPhoneCheckCode", method = RequestMethod.POST,produces= { "application/json;charset=UTF-8" })
+	public String appPhoneCheckCode(String phonenum,String identifyCode,String smsCodeType ) {
+		System.out.println("dsadada			"+phonenum+"bbbbbbbbb	"+identifyCode+"	cccccccc	"+smsCodeType);
+		Message message = new Message();
+		SmsCode sms=new SmsCode();
+		sms.setPhonenum(phonenum);
+		sms.setSmscodeType(smsCodeType);
+		sms.setSmscode(identifyCode);
+		String  oldIdentifyCode = smsCodeService.findIdentifyCodeByPhone(sms);
+		System.out.println("	"+oldIdentifyCode+"		"+identifyCode);
+			if (identifyCode.equals(oldIdentifyCode)) {
+				message.setMessageInfo("验证成功");
+				message.setResult(SUCCESS_MESSAGE);
+			}else{
+				message.setMessageInfo("验证失败");
+				message.setResult(ERROR_MESSAGE);
+			}
+
+		String messageJson = JSONObject.toJSONString(message);
+		return messageJson;
+	}
+	
+	/**
+	 * @Description:手机App用户注册 
+	 * @param :warren
+	 * @return
+	 * @throws Exception
+	 * @test by xiaobai 2016-4-16 OK
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/appUserRegister", method = RequestMethod.POST,produces= { "application/json;charset=UTF-8" })
+	public String appUserRegister(String userJson) throws Exception {
+		Message message = new Message();
+		User user = new User();
+		user = JSON.parseObject(userJson,User.class);
+		String phonenum = user.getPhonenum();
+		user.setPassword(user.getPassword());
+			int userId = userService.addUser(user);
+//			user.setUserId(userId);
+			if (userId==1) {
+				message.setMessageInfo("注册成功");
+				message.setResult(SUCCESS_MESSAGE);
+				String respmes=JSONObject.toJSONString(message);
+				return respmes;
+			}else if(userId==2){
+				message.setResult(ERROR_MESSAGE);
+				message.setMessageInfo("注册失败，用户名已经存在");
+				String messageJson = JSONObject.toJSONString(message);
+				return  messageJson;
+			}else{
+				message.setResult(ERROR_MESSAGE);
+				message.setMessageInfo("注册失败");
+				String messageJson = JSONObject.toJSONString(message);
+				return  messageJson;
+			}
+	}
+	
+	
+	/*
+	 * @author xiaobai
+	 * @Description:用户重置密码
+	 * @param: phonenum  newPassword
+	 * @return msgjson
+	 * @throws Exception
+	 * @test by xiaobai 2016-4-16 OK
+	 * @Date 2016-4-16
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appUpdatePassword",method=RequestMethod.POST,produces= { "application/json;charset=UTF-8" })
+	public String appUpdatePassword(String phonenum,String newPassword){
+		System.out.println(phonenum+"		=====	"+newPassword);
+		Message msg=new Message();
+		User user=userService.loadUserByPhonenum(phonenum);
+		try {
+			user.setPassword(newPassword);
+			int row=userService.updateUser(user);
+			if (row > 0) {
+				msg.setMessageInfo("重置密码成功!");
+				msg.setResult(SUCCESS_MESSAGE);
+			}else{
+				msg.setMessageInfo("重置密码失败!");
+				msg.setResult(ERROR_MESSAGE);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			msg.setMessageInfo("用户不存在!,请输入正确的账号！");
+			msg.setResult(ERROR_MESSAGE);
+		}
+		String respjson=JSONObject.toJSONString(msg);
+		return respjson;
+	}
+	
+	
+	
+	/**
+	 * @Description:手机App用户登录
+	 * @param :args
+	 * @return
+	 * @throws Exception
+	 * @Date 2016-4-10
+	 * @test by xiaobai 2016-4-16 OK
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/appLogin", method = RequestMethod.POST, produces = "application/json; charset=utf-8")
+	public String appLogin(String phonenum, String password) {
+		User user = new User();
+		Message message = new Message();
+		logger.debug(this.getClass().getName() + "登录用户名:" + phonenum + ", 登录密码:" + password);
+		// 加密密码(根据“密码{用户名})进行加密
+		user.setPhonenum(phonenum);
+		user.setPassword(password);
+		User record=userService.SelectUser(user);
+		if (record!=null) {
+			message.setMessageInfo("验证成功");
+			message.setResult(SUCCESS_MESSAGE);
+			message.setObject(JSONObject.toJSONString(record));
+		}else{
+			message.setMessageInfo("密码错误或者用户名不存在");
+			message.setResult(ERROR_MESSAGE);
+		}		
+		
+		String 	messageJson=JSONObject.toJSONString(message);
+		return messageJson;
+	}
+	private static Logger logger = Logger.getLogger(AppUserController.class);
+}

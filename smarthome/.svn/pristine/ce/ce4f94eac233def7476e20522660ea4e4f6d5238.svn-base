@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.homecoo.smarthome.persistence.UserDeviceSpaceMapper" >
+	
+  <resultMap id="BaseResultMap" type="com.homecoo.smarthome.domain.UserDeviceSpace" >
+    <result column="DEVICE_NO" property="deviceNo" jdbcType="VARCHAR"/>
+    <result column="PHONE_NUM" property="phoneNum" jdbcType="VARCHAR" />
+    <result column="SPACE_NO" property="spaceNo" jdbcType="VARCHAR" />
+    <result column="DEVICENAME" property="deviceName" jdbcType="VARCHAR" />
+  </resultMap>
+	
+	<insert id="insertUserDeviceSpace" parameterType="com.homecoo.smarthome.domain.UserDeviceSpace">
+		insert into t_user_device_space(PHONE_NUM,DEVICE_NO,SPACE_NO,DEVICENAME)
+		values(#{phoneNum,jdbcType=VARCHAR},#{deviceNo,jdbcType=VARCHAR},#{spaceNo,jdbcType=VARCHAR},#{deviceName,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="selectUserDeviceSpaceByPhoneNum" resultMap="BaseResultMap" parameterType="String">
+		select * from t_user_device_space where PHONE_NUM=#{phoneNum}
+	</select>
+	
+	<select id="selectUserDeviceSpaceBySpaceNo" resultMap="BaseResultMap" parameterType="String">
+		select * from t_user_device_space where SPACE_NO=#{spaceNo}
+	</select>
+	
+	
+	<select id="getUserDeviceSpace" resultType="INTEGER" databaseId="String">
+		select count(*) from t_UserDeviceSpace where SPACE_NO=#{spaceNo}
+	</select>
+	
+	<select id="selectUserDeviceSpace" resultMap="BaseResultMap" parameterType="String">
+		select * from t_user_device_space where DEVICE_NO=#{deviceNo}
+	</select>
+	
+	<update id="updateUserDeviceSpace" parameterType="com.homecoo.smarthome.domain.UserDeviceSpace">
+		update t_user_device_space set
+		<if test="phoneNum != null">
+			PHONE_NUM=#{phoneNum,jdbcType=VARCHAR},
+		</if>
+		<if test="deviceNo != null">
+			DEVICE_NO=#{deviceNo,jdbcType=VARCHAR},
+		</if>
+		<if test="spaceNo !=null">
+			SPACE_NO=#{spaceNo,jdbcType=VARCHAR},
+		</if>
+		<if test="deviceName != null ">
+			DEVICENAME=#{deviceName,jdbcType=VARCHAR}
+		</if>
+		where SPACE_NO=#{spaceNo,jdbcType=VARCHAR}
+	</update>
+	
+	<delete id="deleteUserDeviceSpaceByPhoneNum" parameterType="String">
+		delete from t_user_device_space where PHONE_NUM=#{phoneNum,jdbcType=VARCHAR}
+	</delete>
+	
+	<select id="deleteUserDeviceSpaceByDeviceNo" parameterType="String">
+		selete from t_user_device_space where DEVICE_NO=#{deviceNo,jdbcType=VARCHAR}
+	</select>
+	
+</mapper>

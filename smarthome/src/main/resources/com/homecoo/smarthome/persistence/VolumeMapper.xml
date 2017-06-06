@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.homecoo.smarthome.persistence.VolumeMapper" >
+  <resultMap id="VolumeResultMap" type="com.homecoo.smarthome.domain.Volume" >
+    <id column="ID" property="id" jdbcType="INTEGER" />
+    <result column="GATEWAY_NO" property="gatewayNo" jdbcType="VARCHAR" />
+    <result column="VOLUME" property="volume" jdbcType="VARCHAR" />
+  </resultMap>
+ 	
+ 	<insert id="insertVolume" parameterType="com.homecoo.smarthome.domain.Volume">
+ 		insert into t_volume (GATEWAY_NO,VOLUME) values(#{gatewayNo},#{volume})
+ 	</insert>
+ 	
+ 	<update id="updateVolume" parameterType="com.homecoo.smarthome.domain.Volume">
+ 		update t_volume set VOLUME = #{volume} where GATEWAY_NO = #{gatewayNo}
+ 	</update>
+ 	
+ 	<select id="selectVolumeByGatewayNo" parameterType="String" resultMap="VolumeResultMap">
+ 		select * from t_volume where GATEWAY_NO = #{gatewayNo}
+ 	</select>
+ 	
+ 	<delete id="deleteVolume" parameterType="String">
+ 		delete t_volume where GATEWAY_NO = #{gatewayNo}
+ 	</delete>
+ 	
+</mapper>

@@ -1,0 +1,447 @@
+package com.homecoo.smarthome.controller;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.apache.tools.ant.util.DeweyDecimal;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.homecoo.smarthome.domain.AppVersion;
+import com.homecoo.smarthome.domain.Device;
+import com.homecoo.smarthome.domain.DeviceDto;
+import com.homecoo.smarthome.domain.DeviceStateRecord;
+import com.homecoo.smarthome.domain.Message;
+import com.homecoo.smarthome.domain.Packet;
+import com.homecoo.smarthome.domain.Schedule;
+import com.homecoo.smarthome.domain.Space;
+import com.homecoo.smarthome.domain.UserDeviceSpace;
+import com.homecoo.smarthome.persistence.DeviceStateRecordMapper;
+import com.homecoo.smarthome.service.IDevice;
+import com.homecoo.smarthome.service.IDeviceState;
+import com.homecoo.smarthome.service.IPacket;
+import com.homecoo.smarthome.service.ISchedule;
+import com.homecoo.smarthome.service.ITheme;
+import com.homecoo.smarthome.service.IUser;
+import com.homecoo.smarthome.service.IUserDeviceSpaceService;
+import com.homecoo.smarthome.util.BasicProcess;
+import com.homecoo.smarthome.util.DateUtil;
+import com.homecoo.smarthome.util.SimpleSocketClient;
+
+@Controller 
+public class AppDeviceController {
+
+	public static final String SUCCESS_MESSAGE = "success";
+	public static final String ERROR_MESSAGE = "failed";
+
+	@Autowired
+	public IUser userService;
+
+	@Autowired
+	public IDevice deviceService;
+
+	@Autowired
+	private ITheme themeService;
+
+	@Autowired
+	public IUserDeviceSpaceService userSpaceDeviceService;
+
+	@Autowired
+	private IDeviceState deviceStateService;
+
+	@Autowired
+	private IPacket packetService;
+	
+	@Autowired
+	private ISchedule scheduleService;
+
+	/**
+	 * 增加单个设备，用户长按硬件，网关发送上报报文到nettyServer，
+	 * nettyServer接到报文后解析，判断如果是添加设备的，则将报文解析后，
+	 * 存储设备信息进数据表t_device表。期间要从t_category表中取出设备大类， 增加设备由网关发送上报报文到服务器，服务器要解析报文，
+	 * 生成device，存储到服务器。手机不执行 这个方法可以没有controller接口 这时候是没有space和phonenum的。
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/wgAddDevice", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String wgAddDevice(String deviceJson) {
+		Message message = new Message();
+		String messageJson = "";
+		Device device = new Device();
+
+		try {
+			device = JSON.parseObject(deviceJson, Device.class);
+			device.setCreateTime(new Date());
+			device.setCreateBy(userService.loadUserByPhonenum(
+					device.getPhoneNum()).getUserId());
+			deviceService.addDevice(device);
+			message.setResult(SUCCESS_MESSAGE);
+			message.setMessageInfo("添加成功");
+		} catch (Exception e) {
+			logger.error("添加设备失败", e);
+			message.setResult(ERROR_MESSAGE);
+			message.setMessageInfo("添加失败");
+		}
+
+		messageJson = JSONObject.toJSONString(message);
+		return messageJson;
+	}
+
+	/**
+	 * 网关一通电，服务器设备数据t_device就必须和网关设备数据进行同步， 网关会发送报文到服务器，服务器解析，判断如果是同步设备的，
+	 * 对t_device表，如果服务器里没有这个设备则新增一条，如果有则update这条，如果少了就要删掉一条（这个怎么处理），
+	 * 根据deviceNo，这时候也不用管t_user_space_device表 （网关如何发送设备报文过来，这个要和平安确定一下）。手机不执行
+	 * 这个方法可以没有controller接口
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/wgAsyncDevice", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String wgAsyncDevice(String packetJson, String gatewayNo) {
+		Message message = new Message();
+		String messageJson = "";
+
+		try {
+
+			message.setResult(SUCCESS_MESSAGE);
+			message.setMessageInfo("同步成功");
+
+		} catch (Exception e) {
+			logger.error("同步错误，请检查网关是否在线", e);
+			message.setResult(ERROR_MESSAGE);
+			message.setMessageInfo("同步错误，请检查网关是否在线");
+		}
+
+		messageJson = JSONObject.toJSONString(message);
+		return messageJson;
+	}
+
+	/**
+	 * 手机获取到device以后，要开始在手机上设置它的space和deviceName
+	 * 设置完后提交到服务器，保存进t_user_space_device表中， 这个接口要有。
+	 * 
+	 * @author xiaobai
+	 * @test 2016-4-19 OK
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appSetUserSpaceDevice", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appSetUserSpaceDevice(String userSpaceDeviceJson) {
+		Message message = new Message();
+		List<UserDeviceSpace> userDeviceSpaceList = JSONArray.parseArray(
+				userSpaceDeviceJson, UserDeviceSpace.class);
+		Iterator<UserDeviceSpace> iterator = userDeviceSpaceList.iterator();
+		try {
+			while (iterator.hasNext()) {
+				UserDeviceSpace deviceSpace = new UserDeviceSpace();
+				deviceSpace = iterator.next();
+				boolean b = userSpaceDeviceService
+						.getUserDeviceSpace(deviceSpace.getSpaceNo());
+				if (b) {
+					userSpaceDeviceService.updateUserDeviceSpace(deviceSpace);
+				} else {
+					userSpaceDeviceService.addUserSpaceDevice(deviceSpace);
+				}
+			}
+			message.setResult(SUCCESS_MESSAGE);
+			message.setMessageInfo("设置成功");
+		} catch (Exception e) {
+			logger.error("设置设备失败", e);
+			message.setResult(ERROR_MESSAGE);
+			message.setMessageInfo("设置失败");
+
+		}
+		String respjson = JSONObject.toJSONString(message);
+		return respjson;
+	}
+
+	/**
+	 * 用户长按硬件设备，发送退网报文到网关，网关发送到nettyServer， nettyServer要从t_device中将其删除，
+	 * 并根据deviceNo到t_user_space_device表删除跟其相关的数据。 手机也不要执行。
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appDeleteDevice", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String deleteDevice(String deviceNo) {
+		Message message = new Message();
+		String messageJson = "";
+		try {
+			deviceService.deleteDevice(deviceNo);
+			message.setResult(SUCCESS_MESSAGE);
+			message.setMessageInfo("删除成功");
+		} catch (Exception e) {
+			logger.error("删除设备失败", e);
+			message.setResult(ERROR_MESSAGE);
+			message.setMessageInfo("删除失败");
+		}
+		messageJson = JSONObject.toJSONString(message);
+		return messageJson;
+	}
+
+	/**
+	 * 用户通过手机获取所有设备，首先要通过phonenum从t_user_space_device 表中获取该用户设备数据 (这个spacedevice
+	 * 不需要设备的具体信息) 手机要执行。
+	 * 
+	 * @author xiaobai
+	 * @Description:用户获取空间
+	 * @test 2016-4-19 OK
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appGetAllSpaceDevice", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appGetAllSpaceDevice(String phonenum) {
+		Message message = new Message();
+		String messageJson = "";
+		try {
+			List<UserDeviceSpace> userSpaceDeviceList = userSpaceDeviceService
+					.getAllDevice(phonenum);
+			if (userSpaceDeviceList.size() > 0) {
+				String deviceListJson = JSONObject
+						.toJSONString(userSpaceDeviceList);
+				message.setResult(SUCCESS_MESSAGE);
+				message.setObject(deviceListJson);
+				message.setMessageInfo("获取设备列表成功！");
+			} else if (userSpaceDeviceList.size() == 0) {
+				message.setResult(ERROR_MESSAGE);
+				message.setMessageInfo("该空间未添加设备!");
+			}
+		} catch (Exception e) {
+			logger.error("获取设备列表失败", e);
+			message.setResult(ERROR_MESSAGE);
+			message.setMessageInfo("获取设备列表失败");
+		}
+
+		messageJson = JSONObject.toJSONString(message);
+		return messageJson;
+	}
+
+	/**
+	 * @author xiaobai
+	 * @param:phonenum,categoryId
+	 * @Description:用户获取设备大类 设备列表
+	 * @test 2016-4-19 15:31 OK
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appGetDeviceListByCategory", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String getDeviceListByCategory(String phonenum, int categoryId) {
+		Message message = new Message();
+		String messageJson = "";
+		System.out.println("=============================  "+categoryId);
+		try {
+			List<Device> deviceList = deviceService.getDeviceListByCategory(
+					phonenum, categoryId);
+			String deviceListJson = JSONObject.toJSONString(deviceList);
+			message.setResult(SUCCESS_MESSAGE);
+			message.setObject(deviceListJson);
+		} catch (Exception e) {
+			logger.error("获取设备列表失败", e);
+			message.setResult(ERROR_MESSAGE);
+			message.setMessageInfo("获取设备列表失败");
+		}
+
+		messageJson = JSONObject.toJSONString(message);
+		return messageJson;
+	}
+
+	/**
+	 * 
+	 * @Description:用户获取网关下所有的设备消息 (包括 设备状态) 传输用 DeviceDto
+	 * @param:phonenNum
+	 * @Date by xiaobai 2016-4-19
+	 * @Test 2016-4-19 OK
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appGetDeviceListByPhoneNum", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appGetDeviceListByPhoneNum(String phoneNum) {
+		Message message = new Message();
+		List<DeviceDto> resp = new ArrayList();
+		String messageJson = "";
+		try {
+			List<Device> deviceList = deviceService
+					.getDeviceListByPhoneNum(phoneNum);
+			Iterator<Device> iterator = deviceList.iterator();
+			while (iterator.hasNext()) {
+				Device device = new Device();
+				DeviceDto deviceDto = new DeviceDto();
+				device = iterator.next();
+				String deviceState = deviceStateService.getDeviceState(
+						device.getDeviceNo()).getDeviceStateCmd();
+				deviceDto.setDevice(device);
+				deviceDto.setDeviceState(deviceState);
+				resp.add(deviceDto);
+			}
+			String deviceListJson = JSONObject.toJSONString(resp);
+			message.setResult(SUCCESS_MESSAGE);
+			message.setObject(deviceListJson);
+		} catch (Exception e) {
+			logger.error("获取设备列表失败", e);
+			message.setResult(ERROR_MESSAGE);
+			message.setMessageInfo("获取设备列表失败");
+		}
+		messageJson = JSONObject.toJSONString(message);
+		return messageJson;
+	}
+
+	/**
+	 * 手机发送控制报文到服务器，服务器发送数据到NettyServer,再发送给网关。 netty要接收从网关发回来的该设备最新状态报文，如果接收不到，
+	 * 说明设备或网络出错，不更新mysql数据库 t_deviceStateRecord.
+	 * 如果收到，解析报文，根据更新t_deviceStateRecord。
+	 * 
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appControlDevice", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String controlDevice(String packetJson, String gatewayNo) {
+		Message message = new Message();
+		String messageJson = "";
+		DeviceStateRecord deviceStateRecord = new DeviceStateRecord();
+		try {
+			Device device = deviceService.controlDevice(packetJson, gatewayNo);
+			deviceStateRecord.setDeviceNo(device.getDeviceNo());
+			deviceStateRecord.setDeviceStateCmd("deviceStateCmd");
+			deviceStateRecord.setLastUpdateBy(1);
+			deviceStateRecord.setLastUpdateTime(new Date());
+
+			deviceService.updateDeviceStateRecord(deviceStateRecord);
+			message.setResult(SUCCESS_MESSAGE);
+			message.setMessageInfo("控制成功");
+
+		} catch (Exception e) {
+			logger.error("控制错误，请检查网关是否在线", e);
+
+			message.setResult(ERROR_MESSAGE);
+			message.setMessageInfo("控制错误，请检查网关是否在线");
+		}
+
+		messageJson = JSONObject.toJSONString(message);
+		return messageJson;
+	}
+
+	/**
+	 * @author xiaobai
+	 * @Date 2016-4-20
+	 * @Description:APP同步所有设备信息到服务器
+	 * @param: deviceJson,deviceSpaceJson,versionJson
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "appSyncDeviceInfo", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appSyncDeviceInfo(String deviceJson, String deviceSpaceJson,
+			String versionJson) {
+		Message msg = new Message();
+		List<Device> deviceList = JSONArray
+				.parseArray(deviceJson, Device.class);
+		List<UserDeviceSpace> userDeviceSpacesLits = JSONArray.parseArray(
+				deviceSpaceJson, UserDeviceSpace.class);
+		AppVersion appVersion = JSONObject.parseObject(versionJson,
+				AppVersion.class);
+		AppVersion version = themeService
+				.getAppVersionByPhoneNumVersionType(appVersion);
+		if (version != null) {
+			themeService.updateVersion(appVersion);
+		} else {
+			themeService.addAppVersion(appVersion);
+		}
+		try {
+			Iterator<Device> iterator = deviceList.iterator();
+			Iterator<UserDeviceSpace> iter = userDeviceSpacesLits.iterator();
+			while (iterator.hasNext()) {
+				Device device = iterator.next();
+				device.setDeviceId(null);
+				boolean b = deviceService.getDeviceByDeviceNo(device
+						.getDeviceNo());
+				if (b) {
+					deviceService.updateDevice(device);
+				} else {
+					deviceService.addDevice(device);
+				}
+			}
+			while (iter.hasNext()) {
+				UserDeviceSpace userDeviceSpace = iter.next();
+				boolean b = userSpaceDeviceService
+						.getUserDeviceSpace(userDeviceSpace.getSpaceNo());
+				if (b) {
+					userSpaceDeviceService
+							.updateUserDeviceSpace(userDeviceSpace);
+				} else {
+					userSpaceDeviceService.addUserSpaceDevice(userDeviceSpace);
+				}
+			}
+			msg.setMessageInfo("同步成功!");
+			msg.setResult(SUCCESS_MESSAGE);
+		} catch (Exception e) {
+			msg.setMessageInfo("同步失败!");
+			msg.setResult(ERROR_MESSAGE);
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+	}
+
+	/**
+	 * @Description:APP从服务器获取所有设备信息
+	 * @author xiaobai
+	 * @Date 2016-4-20
+	 * @param:phonenum
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "appGetDeviceInfo", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appGetDeviceInfo(String phonenum) {
+		Message msg = new Message();
+		try {
+			List<Device> deviceList = deviceService.getAllDevice(phonenum);
+			List<UserDeviceSpace> userDeviceSpacesList = userSpaceDeviceService
+					.getAllDevice(phonenum);
+			AppVersion version = new AppVersion();
+			version.setPhoneNum(phonenum);
+			version.setVersionType(2); // 2 代表设备同步
+			AppVersion appVersion = themeService
+					.getAppVersionByPhoneNumVersionType(version);
+			msg.setDescription(JSONObject.toJSONString(appVersion));
+			msg.setResult(SUCCESS_MESSAGE);
+			msg.setMessageInfo(JSONArray.toJSONString(deviceList));
+			msg.setObject(JSONArray.toJSONString(userDeviceSpacesList));
+		} catch (Exception e) {
+			msg.setMessageInfo("同步设备失败");
+			msg.setResult(ERROR_MESSAGE);
+			e.printStackTrace();
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+	}
+
+	/**
+	 * @author xiaobai
+	 * @param devicePacketJson
+	 * @Date 2016-4-23
+	 * @test OK
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "appDeviceController", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appDeviceController(String devicePacketJson) {
+		Message msg = new Message();
+		System.out.println("			"+devicePacketJson);
+	//	Device device = JSONObject.parseObject(devicePacketJson, Device.class);
+		try {
+		//	packetService.addPacket(packet);
+			byte[] datagram = BasicProcess.toByteArray(devicePacketJson);
+			System.out.println(datagram);
+			SimpleSocketClient simpleSocketClient = new SimpleSocketClient();
+			simpleSocketClient.sendMessage(datagram);
+			msg.setResult(SUCCESS_MESSAGE);
+			msg.setMessageInfo("发送命令成功!");
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("发送命令失败！");
+		} catch (IOException e) {
+		}
+		String respjsonString = JSONObject.toJSONString(msg);
+		return respjsonString;
+
+	}
+
+	private static Logger logger = Logger.getLogger(AppSpaceController.class);
+}
