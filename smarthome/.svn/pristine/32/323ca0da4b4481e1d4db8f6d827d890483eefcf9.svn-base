@@ -1,0 +1,216 @@
+package com.homecoo.smarthome.controller;
+
+import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.homecoo.smarthome.domain.AppVersion;
+import com.homecoo.smarthome.domain.Message;
+import com.homecoo.smarthome.domain.Space;
+import com.homecoo.smarthome.service.ISpace;
+import com.homecoo.smarthome.service.ITheme;
+import com.homecoo.smarthome.service.IThemeDevice;
+import com.homecoo.smarthome.service.IUser;
+
+
+@Controller
+public class AppSpaceController {
+
+	public static final String SUCCESS_MESSAGE = "success";
+	public static final String ERROR_MESSAGE = "failed";
+	
+	@Autowired
+	public  ISpace spaceService;
+	
+	@Autowired
+	public IUser userService;
+	
+	@Autowired
+	private ITheme themeService;
+	
+	/*
+	 * @test by xiaobai OK
+	 * @Date 2016-4-16
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appAddSpace", method = RequestMethod.POST,produces= { "application/json;charset=UTF-8" })
+	public String appAddSpace(String spaceJson){
+		Message message = new Message();
+		String messageJson = "";
+		Space space = new Space();
+		try{
+			space = JSON.parseObject(spaceJson,Space.class);
+			spaceService.addSpace(space);
+			message.setResult(SUCCESS_MESSAGE);
+			message.setMessageInfo("添加成功");
+		}catch(Exception e){
+			message.setResult(ERROR_MESSAGE);
+			message.setMessageInfo("添加失败");
+			logger.error("添加失败", e);
+		}
+	
+		messageJson = JSONObject.toJSONString(message);
+		return messageJson;
+	}
+	
+	
+	/*
+	 * @Description:批量处理空间名称
+	 * @author xiaobai
+	 * @Date 2016-4-18 12:17
+	 * @param:spacejsonlList
+	 * @test by xiaobai 2016-4-18  OK
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appSetSpaceList", method = RequestMethod.POST,produces= { "application/json;charset=UTF-8" })
+	public String appSetSpaceList(String spaceJsonList,String versionJson){
+		Message msg = new Message();
+		AppVersion appVersion=JSONObject.parseObject(versionJson, AppVersion.class);
+		AppVersion version=themeService.getAppVersionByPhoneNumVersionType(appVersion);
+		if (version!=null) {
+			themeService.updateVersion(appVersion);
+		}else{
+			themeService.addAppVersion(appVersion);
+		}
+		String messageJson = "";
+		Space space = new Space();
+		List<Space> spacelist=JSONArray.parseArray(spaceJsonList, Space.class);
+		try {
+			for (int i = 0; i < spacelist.size(); i++) {
+				space=spacelist.get(i);
+				spaceService.deleteSpace(space.getSpaceNo(),space.getPhoneNum());
+				if (space.getSpaceId()!=null) {
+					spaceService.updateSapce(space);
+				}else{
+					spaceService.addSpace(space);
+				}
+			}
+			msg.setMessageInfo("设置成功!");
+			msg.setResult(SUCCESS_MESSAGE);
+		} catch (Exception e) {
+			e.printStackTrace();
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("设置失败!");
+		}
+		messageJson = JSONObject.toJSONString(msg);
+		return messageJson;
+	}
+	
+	/*
+	 * @test by xiaobai OK
+	 * @Date 2016-4-16
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appUpdateSpace", method = RequestMethod.POST,produces= { "application/json;charset=UTF-8" })
+	public String appUpdateSpace(String spaceJson){
+		Message message = new Message();
+		String messageJson = "";
+		Space space = new Space();
+		try{
+			space = JSON.parseObject(spaceJson,Space.class);
+			int userid=userService.loadUserByPhonenum(space.getPhoneNum()).getUserId();
+			space.setUpdateBy(userid);
+			System.out.println("			"+space.toString());
+			spaceService.updateSapce(space);
+			message.setResult(SUCCESS_MESSAGE);
+			message.setMessageInfo("修改成功");
+		}catch(Exception e){
+			message.setResult(ERROR_MESSAGE);
+			message.setMessageInfo("修改失败");
+			logger.error("修改失败", e);
+		}
+		
+		messageJson = JSONObject.toJSONString(message);
+		return messageJson;
+	}
+	
+	/**
+	 * @Description:
+	 * @test by xiaobai OK
+	 * @Date 2016-4-16
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appDeleteSpace", method = RequestMethod.POST,produces= { "application/json;charset=UTF-8" })
+	public String appDeleteSpace(String SpaceNo,String phoneNum){
+		System.out.println("		"+SpaceNo+"	"+phoneNum);
+		Message message = new Message();
+		String messageJson = "";
+		try{
+			spaceService.deleteSpace(SpaceNo, phoneNum);
+			message.setResult(SUCCESS_MESSAGE);
+			message.setMessageInfo("删除成功");
+		}catch(Exception e){
+			message.setResult(ERROR_MESSAGE);
+			message.setMessageInfo("删除失败");
+			logger.error("删除失败", e);
+		}
+		messageJson = JSONObject.toJSONString(message);
+		return messageJson;
+	}
+	
+	
+	/**
+	 * @Description:获取用户所有的空间
+	 * @test by xiaobai OK
+	 * @Date 2016-4-16
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appGetALLSpace", method = RequestMethod.POST,produces= { "application/json;charset=UTF-8" })
+	public String appGetALLSpace(String phonenum){
+		Message message = new Message();
+		String messageJson = "";
+		try{
+			List<Space> spaceList = spaceService.getAllSpaceByPhoneNum(phonenum.trim());
+			System.out.println("				"+spaceList.size()+"个自定义的空间");
+			AppVersion version=new AppVersion();
+			version.setPhoneNum(phonenum);
+			version.setVersionType(3);					//3  代表空间同步
+			AppVersion appVersion=themeService.getAppVersionByPhoneNumVersionType(version);
+			String versionJson=JSONObject.toJSONString(appVersion);
+			String spaceListJson =  JSONArray.toJSONString(spaceList);
+			message.setObject(spaceListJson);
+			message.setDescription(versionJson);
+			message.setResult(SUCCESS_MESSAGE);
+		}catch(Exception e){
+			message.setResult(ERROR_MESSAGE);
+			message.setMessageInfo("获取空间列表失败");
+			logger.error("获取空间列表失败", e);
+		}
+		messageJson = JSONObject.toJSONString(message);
+		return messageJson;
+	}
+	
+	
+	/**
+	 * @Description:用户获取单个空间
+	 *@test by xiaobai OK
+	 *@Date 2016-4-16
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appGetSpace", method = RequestMethod.POST,produces= { "application/json;charset=UTF-8" })
+	public String appGetSpace(String phoneNum,String spaceNo){
+		Message message = new Message();
+		String messageJson = "";
+		Space space = spaceService.getSpaceBySpaceNoPhoneNum(phoneNum, spaceNo);
+		if(space!=null){
+			String spaceJson = JSONObject.toJSONString(space);
+			message.setResult(SUCCESS_MESSAGE);
+			message.setObject(spaceJson);
+		}else{
+			message.setResult(ERROR_MESSAGE);
+			message.setMessageInfo("获取空间失败");
+		}
+		messageJson = JSONObject.toJSONString(message);
+		return messageJson;
+	}
+	
+	private static Logger logger = Logger.getLogger(AppSpaceController.class);
+}

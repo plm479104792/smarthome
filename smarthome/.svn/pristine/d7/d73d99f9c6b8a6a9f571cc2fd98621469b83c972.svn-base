@@ -1,0 +1,15 @@
+package com.homecoo.smarthome.schedule.timer;
+
+import com.homecoo.smarthome.domain.WorkContext;
+import com.homecoo.smarthome.schedule.exception.ExecutorTimerJobException;
+
+
+public interface TimerListener {
+	
+	/**
+	 * 业务处理
+	 * @param workContext
+	 * @throws ExecutorTimerJobException
+	 */
+	public void doWorkBussiness(WorkContext workContext) throws ExecutorTimerJobException;
+}	

@@ -1,0 +1,224 @@
+package com.homecoo.smarthome.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.homecoo.smarthome.domain.Message;
+import com.homecoo.smarthome.domain.Schedule;
+import com.homecoo.smarthome.domain.WorkContext;
+import com.homecoo.smarthome.service.ISchedule;
+import com.homecoo.smarthome.service.TimeManagerService;
+import com.homecoo.smarthome.util.ScheduleToWorkContext;
+
+@Controller
+public class AppScheduleController {
+
+	public static final String SUCCESS_MESSAGE = "success";
+	public static final String ERROR_MESSAGE = "failed";
+
+	@Autowired
+	private ISchedule scheduleService;
+	
+	@Autowired
+	private TimeManagerService timeManagerService;
+
+	/**
+	 * 添加单个定时任务
+	 * 
+	 * @Description: 1:现根据deviceNo 或者themeNo 去数据库中查询 该设备或者情景是否已经做了定时。
+	 *               2:查看传过来的schedule是否有seheduleid
+	 *               3:如果没有直接添加定时任务；如果有，判断该定时任务的时间是否一致,时间一致 提醒用户已经在同一时间设置了定时任务
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appAddSchedule", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appAddSchedule(String scheduleJson) {
+		Schedule schedule = JSONObject
+				.parseObject(scheduleJson, Schedule.class);
+		System.out.println(schedule.toString());
+//		WorkContext workContext=ScheduleToWorkContext.ToWorkContext(schedule);
+//		timeManagerService.putSendRequest(workContext);
+		Message msg = new Message();
+		msg.setResult(SUCCESS_MESSAGE);
+		int row=scheduleService.getSchedule(schedule);
+		if (row > 0) {
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("该设备或者情景，您已经添加了定时任务,请重新编辑！");
+		}else{
+			scheduleService.addShedlue(schedule);
+			msg.setMessageInfo("添加定时任务成功!");
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+	}
+
+	/**
+	 * 获取该网关下的所有定时任务(留着备用 可能不需要)
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appGetScheduleByGatewayNo", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appGetScheduleByGatewayNo(String gatewayNo) {
+		Message msg = new Message();
+		msg.setResult(SUCCESS_MESSAGE);
+		msg.setMessageInfo("获取定时任务成功!");
+		try {
+			List<Schedule> scheduleList = scheduleService
+					.getScheduleByGatewayNo(gatewayNo);
+			msg.setObject(JSONArray.toJSONString(scheduleList));
+		} catch (Exception e) {
+			e.printStackTrace();
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("获取定时任务失败!");
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+
+	}
+
+	/**
+	 * 获取 手机号 该用户下的所有定时任务
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appGetScheduleByPhoneNum", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appGetScheduleByPhoneNum(String phoneNum) {
+		Message msg = new Message();
+		msg.setResult(SUCCESS_MESSAGE);
+		msg.setMessageInfo("获取定时任务成功!");
+		System.out.println(phoneNum);
+		try {
+			List<Schedule> scheduleList = scheduleService
+					.getScheduleByPhoneNum(phoneNum);
+			msg.setObject(JSONArray.toJSONString(scheduleList));
+		} catch (Exception e) {
+			e.printStackTrace();
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("获取定时任务失败!");
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+	}
+
+	/**
+	 * 或者直接传个scheduleId 过来
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appDeleteScheduleByScheduleId", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appDeleteScheduleByScheduleId(String scheduleId){
+		  Message msg=new Message(); 
+		  msg.setResult(SUCCESS_MESSAGE);
+		  msg.setMessageInfo("删除定时任务成功!");
+		  try {
+			  scheduleService.deleteScheduleByScheduleId(Integer.valueOf(scheduleId)); 
+		  } catch(Exception e) { 
+			  e.printStackTrace(); 
+			  msg.setResult(ERROR_MESSAGE);
+		      msg.setMessageInfo("删除定时任务失败!"); 
+		      }
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+	}
+
+	/**
+	 * 删除 该手机号下的所有定时任务
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appDeleteScheduleByPhoneNum", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appDeleteScheduleByPhoneNum(String phoneNum) {
+		System.out.println(phoneNum);
+		Message msg = new Message();
+		msg.setResult(SUCCESS_MESSAGE);
+		
+		msg.setMessageInfo("删除定时任务成功!");
+		try {
+			scheduleService.deleteScheduleByPhoneNum(phoneNum);
+		} catch (Exception e) {
+			e.printStackTrace();
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("删除定时任务失败!");
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+	}
+
+	/**
+	 * 删除该网关下的所有定时任务
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appDeleteScheduleByGatewayNo", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appDeleteScheduleByGatewayNo(String gatewayNo) {
+		Message msg = new Message();
+		msg.setResult(SUCCESS_MESSAGE);
+		msg.setMessageInfo("删除定时任务成功!");
+		try {
+			scheduleService.deleteScheduleByGatewayNo(gatewayNo);
+		} catch (Exception e) {
+			e.printStackTrace();
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("删除定时任务失败!");
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+	}
+	/**
+	 * @Description:用户根据 手机号 和 设备id 查询 已经设置的定时
+	 * @author xiaobai
+	 * type 1:表示设备   2： 表示情景
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appGetSchedule", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appGetSchedule(String paramNo,String phoneNum,String type){
+		Message msg = new Message();
+		msg.setResult(SUCCESS_MESSAGE);
+		msg.setMessageInfo("获取定时任务成功!");
+		try {
+			if (Integer.valueOf(type)==1) {
+				List<Schedule> list=scheduleService.getScheduleByDeviceNoAndPhoneNum(paramNo, phoneNum);
+				msg.setObject(JSONArray.toJSONString(list));
+			}else if (Integer.valueOf(type)==2) {
+				List<Schedule> list=scheduleService.getScheduleByThemeNoAndPhoneNum(paramNo, phoneNum);
+				msg.setObject(JSONArray.toJSONString(list));
+			}else{
+				msg.setResult(ERROR_MESSAGE);
+				msg.setMessageInfo("获取定时任务失败！");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("获取定时任务失败！");
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+	}
+	
+	/**
+	 * @Description: 根据手机号，情景ID 或者deviceID 更新定时   type：1: 设备   2:情景
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "/appUpdateSchedule", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appUpdateSchedule(String scheduleJson,String type){
+		Schedule schedule=JSONObject.parseObject(scheduleJson, Schedule.class);
+		System.out.println(schedule.toString());
+		Message msg = new Message();
+		msg.setResult(SUCCESS_MESSAGE);
+		msg.setMessageInfo("更新定时任务成功!");
+		try {
+			scheduleService.updateSchedule(schedule, Integer.valueOf(type));
+		} catch (Exception e) {
+			e.printStackTrace();
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("更新定时任务失败!");
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+		
+	}
+	
+	
+	
+}

@@ -1,0 +1,236 @@
+package com.homecoo.smarthome.controller;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.homecoo.smarthome.domain.AppVersion;
+import com.homecoo.smarthome.domain.Message;
+import com.homecoo.smarthome.domain.Packet;
+import com.homecoo.smarthome.domain.Theme;
+import com.homecoo.smarthome.domain.ThemeDevice;
+import com.homecoo.smarthome.service.IPacket;
+import com.homecoo.smarthome.service.ITheme;
+import com.homecoo.smarthome.service.IThemeDevice;
+import com.homecoo.smarthome.service.IUser;
+
+@Controller
+
+public class AppThemeController {
+
+	public static final String SUCCESS_MESSAGE = "success";
+	public static final String ERROR_MESSAGE = "failed";
+
+	@Autowired
+	public ITheme themeService;
+
+	@Autowired
+	public IUser userService;
+
+	@Autowired
+	public IThemeDevice themeDeviceSerive;
+	
+	@Autowired
+	private IPacket packetService;
+
+	/**
+	 * 增加情景模式由手机发送情景模式配置报文上报报文到服务器，再发送到nettyserver, 再传到网关，由网关保存。
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/appAddTheme", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String addTheme(String themePacket, String gatewayNo, String phonenum) {
+		Message message = new Message();
+		String messageJson = "";
+		Theme theme = new Theme();
+
+		try {
+			theme.setCreateTime(new Date());
+			theme.setCreateBy(userService.loadUserByPhonenum(phonenum)
+					.getUserId());
+			// 解析报文
+			theme.setThemeState("themeStateCmd");
+			themeService.addTheme(themePacket, gatewayNo);
+			message.setResult(SUCCESS_MESSAGE);
+			message.setMessageInfo("添加成功");
+		} catch (Exception e) {
+			logger.error("添加设备失败", e);
+			message.setResult(ERROR_MESSAGE);
+			message.setMessageInfo("添加失败");
+		}
+
+		messageJson = JSONObject.toJSONString(message);
+		return messageJson;
+	}
+
+	/**
+	 * @author xiaobai
+	 * @Description:手机同步情景到服务器
+	 * @param: themejson,themedevicejson,versionJson
+	 * @Date 2016-4-20
+	 * @test 2016-4-20 OK
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "appSyncThemeInfo", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appSyncThemeInfo(String themeJson, String themeDeviceJson,String versionJson) {
+		Message msg = new Message();
+		List<Theme> themelist = JSONArray.parseArray(themeJson, Theme.class);
+		List<ThemeDevice> themeDevicelist = JSONArray.parseArray(themeDeviceJson, ThemeDevice.class);
+		AppVersion appVersion=JSONObject.parseObject(versionJson,AppVersion.class);
+		System.out.println("===============================		"+appVersion.toString());
+		AppVersion version=themeService.getAppVersionByPhoneNumVersionType(appVersion);
+		if (version!=null) {
+			themeService.updateVersion(appVersion);
+		}else{
+			themeService.addAppVersion(appVersion);
+		}
+		Iterator<Theme> iterator = themelist.iterator();
+		Iterator<ThemeDevice> iter = themeDevicelist.iterator();
+		try {
+			while (iterator.hasNext()) {
+				Theme theme = iterator.next();
+				// 判断网关下的情景是否存在，存在update 不存在 insert
+				Boolean b = themeService.getTheme(theme.getThemeNo());
+				if (b) {
+					themeService.updateTheme(theme);
+				} else {
+					themeService.addTheme(theme);
+				}
+			}
+			while (iter.hasNext()) {
+				ThemeDevice themeDevice = iter.next();
+				// 判断t_themedevice是否有该themeNo 的记录，存在 update;不存在 inert
+				System.out.println("==============	" + themeDevice.toString());
+				Boolean b = themeDeviceSerive.getThemeDevice(themeDevice
+						.getThemeNo());
+				if (b) {
+					themeDeviceSerive.updateThemeDevice(themeDevice);
+				} else {
+					themeDeviceSerive.addThemeDevice(themeDevice);
+				}
+			}
+			msg.setMessageInfo("同步情景成功!");
+			msg.setResult(SUCCESS_MESSAGE);
+		} catch (Exception e) {
+			msg.setMessageInfo("同步情景失败!");
+			msg.setResult(ERROR_MESSAGE);
+			e.printStackTrace();
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+	}
+
+	/**
+	 * @Description:手机从服务器获取情景
+	 * @author xiaobai
+	 * @Date 2016-4-20
+	 * @test 2016-4-10 OK
+	 * */
+	@ResponseBody
+	@RequestMapping(value = "appGetThemeDevice", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appGetThemeDevice(String gatewayNo) {
+		Message msg = new Message();
+		try {
+			List<Theme> themelist = themeService.getAllTheme(gatewayNo);
+			List<ThemeDevice> themeDevicelist = themeDeviceSerive.getALLThemeDeviceByGatewayNo(gatewayNo);
+			AppVersion version=new AppVersion();
+			version.setGatewayNo(gatewayNo);
+			version.setVersionType(4);					//4 代表情景同步
+			AppVersion appVersion=themeService.getAppVersionByGatewayNoVersionType(version);
+			msg.setDescription(JSONObject.toJSONString(appVersion));
+			msg.setResult(SUCCESS_MESSAGE);
+			msg.setObject(JSONArray.toJSONString(themeDevicelist));
+			msg.setMessageInfo(JSONArray.toJSONString(themelist));
+		} catch (Exception e) {
+			e.printStackTrace();
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("获取情景失败!");
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+	}
+
+	/**
+	 * @author xiaobai
+	 * @Description:服务器对比手机提交的Version串中phonenum、versiontype、updatetime 
+	 *       (1)如果服务器的时间和手机的时间戳相同则ResultMessage.object=0
+	 *     	 (2)如果服务器的时间最新则返回ResultMessage.object=1
+	 *       (3)如果手机端的手机最新则返回ResultMessage.object=2
+	 * @param:versionJson
+	 * @Date 2016-4-21
+	 * */
+	@ResponseBody
+	@RequestMapping(value="appCompareVersion",method=RequestMethod.POST,produces = { "application/json;charset=UTF-8" })
+	public String appCompareVersion(String versionJson) {
+		Message msg = new Message();
+		AppVersion appVersion = JSONObject.parseObject(versionJson,AppVersion.class);
+		try {
+			AppVersion version = themeService.getAppVersionByPhoneNumVersionType(appVersion);
+			if (version!=null) {
+				System.out.println(appVersion.getUpdateTime()+"	============	"+version.getUpdateTime());
+				Long i = appVersion.getUpdateTime()-version.getUpdateTime();
+				if (i > 0) { 							// i>0 表示手机端发送的时间最新
+					msg.setObject("2");
+				} else if (i == 0) {					// i==0表示手机服务器一致
+					msg.setObject("0");
+				} else {								//i<0 服务器最新
+					msg.setObject("1");
+				}
+				msg.setMessageInfo("版本检查成功!");
+				msg.setResult(SUCCESS_MESSAGE);
+			}else{
+				msg.setMessageInfo("版本检查成功!");
+				msg.setResult(SUCCESS_MESSAGE);
+				msg.setObject("2");
+			}
+		} catch (Exception e) {
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("版本检查失败!");
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+	}
+	
+	
+	/**
+	 * @author xiaobai
+	 * @Date 2016-4-30
+	 * @description:手机从服务器获取所有的情景报文
+	 * */
+	@ResponseBody
+	@RequestMapping(value="appGetAllTheme",method=RequestMethod.POST,produces = { "application/json;charset=UTF-8" })
+	public String appGetAllTheme(String gatewayNo){
+		Message msg=new Message();
+		try {
+			List<Packet> list=packetService.selectPacket(gatewayNo);
+			msg.setMessageInfo("获取情景报文成功!");
+			msg.setResult(SUCCESS_MESSAGE);
+			msg.setObject(JSONArray.toJSON(list));
+		} catch (Exception e) {
+			e.printStackTrace();
+			msg.setMessageInfo("获取情景报文失败!");
+			msg.setResult(ERROR_MESSAGE);
+		};
+		String respjson = JSONArray.toJSONString(msg);
+		return respjson;
+		
+	}
+	
+	
+	
+	
+	
+
+	private static Logger logger = Logger.getLogger(AppSpaceController.class);
+
+}

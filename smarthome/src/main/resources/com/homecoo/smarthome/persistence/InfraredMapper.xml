@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.homecoo.smarthome.persistence.InfraredMapper" >
+  <resultMap id="BaseResultMap" type="com.homecoo.smarthome.domain.Infrared" >
+    <result column="INFRARED_ID" property="infraredId" jdbcType="INTEGER" />
+    <result column="DEVICE_NO" property="deviceNo" jdbcType="VARCHAR" />
+    <result column="DEVICE_STATE_CMD" property="deviceStateCmd" jdbcType="VARCHAR" />
+    <result column="GATEWAY_NO" property="gatewayNo" jdbcType="VARCHAR" />
+    <result column="INFRA_CRL_NAME" property="infraCrlName" jdbcType="VARCHAR" />
+    <result column="INFRA_TYPE_ID" property="infraTypeId" jdbcType="INTEGER" />
+    <result column="THEME_NO" property="themeNo" jdbcType="VARCHAR" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    INFRARED_ID, DEVICE_NO, DEVICE_STATE_CMD, GATEWAY_NO, INFRA_CRL_NAME, INFRA_TYPE_ID,THEME_NO
+  </sql>
+  
+  
+  <select id="selectInfraredByGatewayNo" parameterType="String" resultMap="BaseResultMap">
+  	select * from t_infrared where GATEWAY_NO=#{gatewayNo}
+  </select>
+  
+  
+  
+  <delete id="deleteInfraredByTypeIdAndthemeNo" parameterType="com.homecoo.smarthome.domain.Infrared">
+    delete from t_infrared
+    where DEVICE_NO = #{deviceNo} and INFRA_TYPE_ID = #{infraredId} and THEME_NO = #{themeNo}
+  </delete>
+  
+  <delete id="deleteInfraredBygatewayNo" parameterType="com.homecoo.smarthome.domain.Infrared">
+    delete from t_infrared
+    where GATEWAY_NO=#{gatewayNo}
+  </delete>
+  
+  
+  <delete id="deleteInfraredByDeviceNo" parameterType="String" >
+    delete from t_infrared
+    where DEVICE_NO = #{deviceNo}
+  </delete>
+  
+  
+  <insert id="insertInfrared" parameterType="com.homecoo.smarthome.domain.Infrared" >
+    insert into t_infrared (INFRARED_ID, DEVICE_NO, DEVICE_STATE_CMD, 
+      GATEWAY_NO, INFRA_CRL_NAME, INFRA_TYPE_ID,THEME_NO
+      )
+    values (#{infraredId,jdbcType=INTEGER}, #{deviceNo,jdbcType=VARCHAR}, #{deviceStateCmd,jdbcType=VARCHAR}, 
+      #{gatewayNo,jdbcType=VARCHAR}, #{infraCrlName,jdbcType=VARCHAR}, #{infraTypeId,jdbcType=INTEGER}, 
+      #{themeNo,jdbcType=VARCHAR}
+      )
+  </insert>
+
+  <update id="updateBydeviceNoAndTypeId" parameterType="com.homecoo.smarthome.domain.Infrared" >
+    update t_infrared
+    set   DEVICE_NO = #{deviceNo,jdbcType=VARCHAR},
+      DEVICE_STATE_CMD = #{deviceStateCmd,jdbcType=VARCHAR},
+      GATEWAY_NO = #{gatewayNo,jdbcType=VARCHAR},
+      INFRA_CRL_NAME = #{infraCrlName,jdbcType=VARCHAR},
+      THEME_NO = #{themeNo,jdbcType=VARCHAR}
+    where DEVICE_NO = #{deviceNo,jdbcType=VARCHAR} and INFRA_TYPE_ID = #{infraTypeId,jdbcType=INTEGER}
+  </update>
+</mapper>

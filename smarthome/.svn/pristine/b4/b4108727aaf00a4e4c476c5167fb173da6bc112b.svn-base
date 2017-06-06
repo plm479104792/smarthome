@@ -1,0 +1,279 @@
+package com.homecoo.smarthome.controller;
+
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.homecoo.smarthome.domain.Message;
+import com.homecoo.smarthome.domain.Music;
+import com.homecoo.smarthome.domain.ThemeMusic;
+import com.homecoo.smarthome.service.IMusicService;
+import com.homecoo.smarthome.util.JPushimpl;
+
+@Controller
+public class AppMusicContorller {
+
+	public static final String SUCCESS_MESSAGE = "success";
+	public static final String ERROR_MESSAGE = "failed";
+
+	@Autowired
+	private IMusicService musicService;
+
+	/*
+	 * @author xiaobai
+	 * 
+	 * @Description:手机App用户向服务器发生歌曲列表
+	 * 
+	 * @Date 2016-4-13
+	 * 
+	 * @return
+	 * 
+	 * @throws Exception
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/appSendMusicList", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appSendMusicList(String musicJson, String gatewayNo) {
+		Message msg = new Message();
+		List<Music> listMusic = JSONArray.parseArray(musicJson, Music.class);
+		try {
+			musicService.deletdMusic(gatewayNo);
+			Iterator<Music> iterator = listMusic.iterator();
+			while (iterator.hasNext()) {
+				Music music = iterator.next();
+				musicService.addMusic(music);
+			}
+			msg.setMessageInfo("添加歌曲成功!");
+			msg.setResult(SUCCESS_MESSAGE);
+		} catch (Exception e) {
+			e.printStackTrace();
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("添加歌曲失败!");
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+	}
+
+	/*
+	 * @author xiaobai OK
+	 * 
+	 * @Description:手机App用户获取七寸屏上歌曲
+	 * 
+	 * @Date 2016-4-13
+	 * 
+	 * @return list<music> json
+	 * 
+	 * @param :wgid
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/appGetMusic", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appGetMusic(String gatewayNo) {
+		Message msg = new Message();
+		try {
+			List<Music> list = musicService.selecctAllMusic(gatewayNo);
+			msg.setMessageInfo("获取音乐成功!");
+			msg.setResult(SUCCESS_MESSAGE);
+			msg.setObject(JSONArray.toJSONString(list));
+		} catch (Exception e) {
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("获取音乐失败!");
+		}
+		String respjson = JSONArray.toJSONString(msg);
+		return respjson;
+	}
+
+	/*
+	 * @author xiaobai
+	 * 
+	 * @Description:手机控制歌曲播放指令，Jpush推送
+	 * 
+	 * @Date 2016-4-13
+	 * 
+	 * @param:musicOrder
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/appSendMusicOrder", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appSendMusicOrder(String musicOrder) {
+		Message msg = new Message();
+		try {
+			JPushimpl jpush = new JPushimpl();
+			jpush.sendPush(musicOrder);
+			msg.setMessageInfo("控制成功!");
+			msg.setResult(SUCCESS_MESSAGE);
+		} catch (Exception e) {
+			msg.setMessageInfo("控制失败!");
+			msg.setResult(ERROR_MESSAGE);
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+	}
+
+	/*
+	 * (单个设置)
+	 * 
+	 * @author xiaobai
+	 * 
+	 * @Description:情景音乐设置
+	 * 
+	 * @param:themeid,songName,wgid,style //style 1:单曲循环 2:列表循环 3:随机循环 4暂停
+	 * 如果该themeid有了就是update 没有添加
+	 * 
+	 * @Date 2016-4-13
+	 * 
+	 * @test 2016-4-20 OK 情景音乐模式 点进去之后，调用接口查询是否设置了歌曲(弹出框
+	 * 没有你还没有设置该情景音乐，有当前情景音乐设置为 彩虹(确认 取消键：是否删除该情景音乐)) 选取了歌曲 退出的时候跳出一个弹出框，是否设置：否
+	 * 不做判断(不调用服务器接口) 是：发送该themeMusic(歌曲 thmemid wgid==) 过来 根据themeMusic的
+	 * themeid wgid 查询该情景下之前是否设置 之前没有设置，添加情景音乐 之前有设置：update 离家 睡眠模式默认暂停音乐 怎么弄
+	 * 这种情况在安卓端设置好添加一个控件
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/setThemeMusic", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String setThemeMusic(String thememusic) {
+		Message msg = new Message();
+		ThemeMusic themeMusic = JSONObject.parseObject(thememusic,
+				ThemeMusic.class);
+		ThemeMusic getmusic = musicService.getThemeMusic(themeMusic);
+		int row = 0;
+		if (getmusic != null) {
+			row = musicService.updateThemeMusic(themeMusic);
+		} else {
+			row = musicService.setThemeMusic(themeMusic);
+		}
+		if (row > 0) {
+			msg.setMessageInfo("设置成功!");
+			msg.setResult(SUCCESS_MESSAGE);
+		} else {
+			msg.setMessageInfo("设置失败!");
+			msg.setResult(ERROR_MESSAGE);
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+	}
+
+	/*
+	 * @author xiaobai OK
+	 * 
+	 * @Description: 删除情景音乐设置
+	 * 
+	 * @Date 2016-4-13
+	 * 
+	 * @param:themeid,wgid
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/DeleteThemeMusic", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String DeleteThemeMusic(String themeNo, String gatewayNo) {
+		System.out.println("````````````	" + themeNo + "			" + gatewayNo);
+		Message msg = new Message();
+		int row = musicService.deleteThemeMuisc(themeNo, gatewayNo);
+		if (row > 0) {
+			msg.setMessageInfo("删除情景歌曲成功!");
+			msg.setResult(SUCCESS_MESSAGE);
+		} else {
+			msg.setMessageInfo("删除情景歌曲失败!");
+			msg.setResult(ERROR_MESSAGE);
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+	}
+
+	/*
+	 * @author xiaobai OK
+	 * 
+	 * @Description:查询情景音乐
+	 * 
+	 * @Date 2016-4-13
+	 * 
+	 * @praram:themeid,wgid
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/appGetThemeMusic", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appGetThemeMusic(String themeNo, String gatewayNo) {
+		Message msg = new Message();
+		ThemeMusic getmusic = musicService.getThemeMusicByphoneNumgatewayNo(
+				themeNo, gatewayNo);
+		if (getmusic != null) {
+			msg.setMessageInfo("获取情景歌曲成功!");
+			msg.setResult(SUCCESS_MESSAGE);
+			msg.setObject(JSONObject.toJSONString(getmusic));
+		} else {
+			msg.setMessageInfo("该情景您之前未设置情景音乐");
+			msg.setResult(ERROR_MESSAGE);
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+	}
+
+	/**
+	 * @author xiaobai
+	 * @Description:用户从服务器上同步 所有的情景 音乐也要同步
+	 * @param:themeMusicJson
+	 * @test 2016-4-21 OK
+	 * */
+	@ResponseBody
+	@RequestMapping(value="appGetAllThemeMusic",method=RequestMethod.POST, produces = { "application/json;charset=UTF-8" } )
+	public String appGetAllThemeMusic(String gatewayNo) {
+		Message msg = new Message();
+		try {
+			List<ThemeMusic> themeMusicList = musicService
+					.getAllThemeMusic(gatewayNo);
+			msg.setMessageInfo("同步情景音乐成功!");
+			msg.setResult(SUCCESS_MESSAGE);
+			msg.setObject(JSONArray.toJSONString(themeMusicList));
+		} catch (Exception e) {
+			e.printStackTrace();
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("同步情景音乐失败!");
+		}
+		String respjson = JSONObject.toJSONString(msg);
+		return respjson;
+
+	}
+
+	/**
+	 * @Description:手机同步所有的情景音乐给服务器
+	 * @author xiaobai
+	 * @Date 2016-4-20
+	 * @param:themeMusicList
+	 * @test 2016-4-21 OK
+	 * */
+	@ResponseBody
+	@RequestMapping(value="appSetThemeMusic",method=RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
+	public String appSetThemeMusic(String themeMusicList) {
+		Message msg = new Message();
+		List<ThemeMusic> list = JSONArray.parseArray(themeMusicList,
+				ThemeMusic.class);
+		try {
+
+			Iterator<ThemeMusic> iterator = list.iterator();
+			while (iterator.hasNext()) {
+				ThemeMusic themeMusic = iterator.next();
+				boolean b = musicService.getThemeMusicByThemeNo(themeMusic
+						.getThemeNo());
+				if (b) {
+					musicService.updateThemeMusic(themeMusic);
+				} else {
+					musicService.setThemeMusic(themeMusic);
+				}
+			}
+			msg.setResult(SUCCESS_MESSAGE);
+			msg.setMessageInfo("同步情景音乐成功!");
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			msg.setResult(ERROR_MESSAGE);
+			msg.setMessageInfo("同步情景音乐失败!");
+		}
+		String respjson=JSONObject.toJSONString(msg);
+		return respjson;
+
+	}
+
+	private static Logger logger = Logger.getLogger(AppMusicContorller.class);
+}

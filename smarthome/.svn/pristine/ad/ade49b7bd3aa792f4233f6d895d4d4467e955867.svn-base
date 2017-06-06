@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.homecoo.smarthome.persistence.ThemeMapper" >
+  <resultMap id="BaseResultMap" type="com.homecoo.smarthome.domain.Theme" >
+    <result column="THEME_ID" property="themeId" jdbcType="INTEGER" />
+    <result column="THEME_NO" property="themeNo" jdbcType="VARCHAR" />
+    <result column="THEME_NAME" property="themeName" jdbcType="VARCHAR" />
+    <result column="THEME_TYPE" property="themeType" jdbcType="CHAR" />
+    <result column="THEME_STATE" property="themeState" jdbcType="VARCHAR" />
+    <result column="GATEWAY_NO" property="gatewayNo" jdbcType="VARCHAR" />
+    <result column="DEVICE_NO" property="deviceNo" jdbcType="VARCHAR" />
+    <result column="CREATE_TIME" property="createTime" jdbcType="TIMESTAMP" />
+    <result column="CREATE_BY" property="createBy" jdbcType="INTEGER" />
+    <result column="UPDATE_TIME" property="updateTime" jdbcType="TIMESTAMP" />
+    <result column="UPDATE_BY" property="updateBy" jdbcType="INTEGER" />
+  </resultMap>
+  <insert id="insertTheme" parameterType="com.homecoo.smarthome.domain.Theme" >
+    insert into t_theme (THEME_ID, THEME_NO, THEME_NAME, 
+      THEME_TYPE, THEME_STATE, DEVICE_NO, GATEWAY_NO,
+      CREATE_TIME, CREATE_BY, UPDATE_TIME, 
+      UPDATE_BY)
+    values (#{themeId,jdbcType=INTEGER}, #{themeNo,jdbcType=VARCHAR}, #{themeName,jdbcType=VARCHAR}, 
+      #{themeType,jdbcType=CHAR}, #{themeState,jdbcType=VARCHAR}, #{deviceNo,jdbcType=VARCHAR}, #{gatewayNo,jdbcType=VARCHAR},
+      #{createTime,jdbcType=TIMESTAMP}, #{createBy,jdbcType=INTEGER}, #{updateTime,jdbcType=TIMESTAMP}, 
+      #{updateBy,jdbcType=INTEGER})
+  </insert>
+  
+  <delete id="deleteTheme" parameterType="String">
+  	delete from t_theme where GATEWAY_NO=#{gatewayNo}
+  </delete>
+  
+  <update id="updateTheme" parameterType="com.homecoo.smarthome.domain.Theme">
+  	update t_theme set THEME_NO=#{themeNo},THEME_NAME=#{themeName},THEME_TYPE=#{themeType},
+  		DEVICE_NO=#{deviceNo},GATEWAY_NO=#{gatewayNo},THEME_STATE=#{themeState},
+  		CREATE_TIME=#{createTime},CREATE_BY=#{createBy},UPDATE_TIME=#{updateTime},UPDATE_BY=#{updateBy}
+  		where THEME_ID=#{themeId}
+  </update>
+  
+  <select id="selectAllThemeByPhoneNum" parameterType="String" resultMap="BaseResultMap">
+  	select * from t_theme where GATEWAY_NO=#{gatewayNo}
+  </select>
+  
+  <select id="selectThemeByThemeNoGatewayNo" parameterType="String" resultMap="BaseResultMap">
+  	select * from t_theme where THEME_NO=#{themeNo}
+  </select>
+  
+
+</mapper>

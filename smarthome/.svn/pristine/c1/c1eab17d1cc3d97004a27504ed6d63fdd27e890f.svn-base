@@ -1,0 +1,10 @@
+package com.homecoo.smarthome.service;
+
+import com.homecoo.smarthome.domain.Gateway;
+
+public interface IGateway {
+
+	void asyncGatewayInfo(Gateway gateway);
+	
+	Gateway getGatewayInfo(String gatewayNo);
+}

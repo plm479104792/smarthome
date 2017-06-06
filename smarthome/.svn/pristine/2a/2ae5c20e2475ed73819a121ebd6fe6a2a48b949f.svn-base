@@ -1,0 +1,29 @@
+package com.homecoo.smarthome.util;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.homecoo.smarthome.domain.Schedule;
+import com.homecoo.smarthome.domain.WorkContext;
+
+/**
+ * mysql查询到的定时任务  转换为发送到netty的workcontext
+ * */
+public class ScheduleToWorkContext {
+	
+	public static WorkContext ToWorkContext(Schedule schedule){
+		WorkContext workContext=new WorkContext();
+		String date=schedule.getRiqi();
+		String shij=schedule.getShij();
+		String time1=date+" "+shij;
+		Long time=DateUtil.StringToDate(time1, "yyyy-MM-dd hh:mm:ss").getTime();
+		workContext.setExecuteTime(time);
+		byte[] msg=BasicProcess.toByteArray(schedule.getPacketData());
+		Map<String,byte[]> map=new HashMap<String, byte[]>();
+		map.put(String.valueOf(schedule.getScheduleId()), BasicProcess.toByteArray(schedule.getPacketData()));
+		workContext.setSendMapData(map);
+		return workContext;
+	} 
+
+}

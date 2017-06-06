@@ -1,0 +1,22 @@
+package com.homecoo.smarthome.persistence;
+
+import org.apache.ibatis.annotations.Param;
+
+import com.homecoo.smarthome.domain.Gateway;
+
+public interface GatewayMapper {
+
+    //给手机号绑定网关
+    int insert(Gateway record);
+
+    //根据手机号获取网关
+    Gateway selectByPhonenum(@Param("gatewayNo")String gatewayNo);
+    
+    int insertSelective(Gateway record);
+
+    int deleteByPrimaryKey(String gatewayId);
+
+    int updateByPrimaryKeySelective(Gateway record);
+
+    int updateByPrimaryKey(Gateway record);
+}
