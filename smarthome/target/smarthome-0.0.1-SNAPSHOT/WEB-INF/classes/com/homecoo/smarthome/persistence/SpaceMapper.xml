@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.homecoo.smarthome.persistence.SpaceMapper">
+
+	<resultMap id="BaseResultMap" type="com.homecoo.smarthome.domain.Space">
+		<id column="SPACE_ID" property="spaceId" jdbcType="INTEGER" />
+		<result column="SPACE_NO" property="spaceNo" jdbcType="VARCHAR" />
+		<result column="SPACE_NAME" property="spaceName" jdbcType="VARCHAR" />
+		<result column="GATEWAY_NO" property="gatewayNo" jdbcType="VARCHAR" />
+		<result column="PHONE_NUM" property="phoneNum" jdbcType="VARCHAR" />
+		<result column="CREATE_TIME" property="createTime" jdbcType="TIMESTAMP" />
+		<result column="CREATE_BY" property="createBy" jdbcType="INTEGER" />
+		<result column="UPDATE_TIME" property="updateTime" jdbcType="TIMESTAMP" />
+		<result column="UPDATE_BY" property="updateBy" jdbcType="INTEGER" />
+	</resultMap>
+
+
+	<select id="getSpaceBySpaceNoPhoneNum" resultMap="BaseResultMap"
+		parameterType="String">
+		select *
+		from t_space
+		where SPACE_NO=#{spaceNo} and PHONE_NUM=#{phoneNum}
+	</select>
+	<insert id="addSpace" parameterType="com.homecoo.smarthome.domain.Space">
+		insert into t_space (SPACE_ID, SPACE_NO, SPACE_NAME,
+		GATEWAY_NO, PHONE_NUM, CREATE_TIME,
+		CREATE_BY, UPDATE_TIME, UPDATE_BY
+		)
+		values (#{spaceId,jdbcType=INTEGER}, #{spaceNo,jdbcType=VARCHAR},
+		#{spaceName,jdbcType=VARCHAR},
+		#{gatewayNo,jdbcType=VARCHAR}, #{phoneNum,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP},
+		#{createBy,jdbcType=INTEGER}, #{updateTime,jdbcType=TIMESTAMP},
+		#{updateBy,jdbcType=INTEGER}
+		)
+	</insert>
+
+	<delete id="deleteSpace" parameterType="com.homecoo.smarthome.domain.Space">
+		delete from t_space where SPACE_NO=#{spaceNo} and PHONE_NUM=#{phoneNum}
+	</delete>
+
+	<select id="getAllSpaceByPhoneNum" resultMap="BaseResultMap">
+		select * from t_space where PHONE_NUM=#{phoneNum}
+	</select>
+
+	<update id="updateSapce" parameterType="com.homecoo.smarthome.domain.Space">
+		update t_space
+		<set>
+			<if test="spaceNo != null">
+				SPACE_NO = #{spaceNo,jdbcType=VARCHAR},
+			</if>
+			<if test="spaceName != null">
+				SPACE_NAME = #{spaceName,jdbcType=VARCHAR},
+			</if>
+			<if test="gatewayNo != null">
+				GATEWAY_NO = #{gatewayNo,jdbcType=VARCHAR},
+			</if>
+			<if test="phoneNum != null">
+				PHONE_NUM = #{phoneNum,jdbcType=VARCHAR},
+			</if>
+			<if test="createTime != null">
+				CREATE_TIME = #{createTime,jdbcType=TIMESTAMP},
+			</if>
+			<if test="createBy != null">
+				CREATE_BY = #{createBy,jdbcType=INTEGER},
+			</if>
+			<if test="updateTime != null">
+				UPDATE_TIME = #{updateTime,jdbcType=TIMESTAMP},
+			</if>
+			<if test="updateBy != null">
+				UPDATE_BY = #{updateBy,jdbcType=INTEGER},
+			</if>
+		</set>
+		where SPACE_ID = #{spaceId,jdbcType=INTEGER}
+	</update>
+
+	<delete id="deleteSpaceByPhonenum">
+    	delete from t_space where PHONE_NUM = #{phoneNum}
+    </delete>
+</mapper>

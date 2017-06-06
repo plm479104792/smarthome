@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.homecoo.smarthome.persistence.ScheduleMapper" >
+
+  <resultMap id="BaseResultMap" type="com.homecoo.smarthome.domain.Schedule" >
+    <id column="SCHEDULE_ID" property="scheduleId" jdbcType="INTEGER" />
+    <result column="XINGQI" property="xingqi" jdbcType="CHAR" />
+    <result column="RIQI" property="riqi" jdbcType="VARCHAR" />
+    <result column="SHIJ" property="shij" jdbcType="VARCHAR" />
+    <result column="STATE" property="state" jdbcType="CHAR" />
+    <result column="STRATEGY" property="strategy" jdbcType="CHAR" />
+    <result column="PHONE_NUM" property="phoneNum" jdbcType="VARCHAR" />
+    <result column="DEVICE_NO" property="deviceNo" jdbcType="VARCHAR" />
+    <result column="THEME_NO" property="themeNo" jdbcType="VARCHAR" />
+    <result column="GATEWAY_NO" property="gatewayNo" jdbcType="VARCHAR" />
+    <result column="DEVICESTATE" property="deviceState" jdbcType="VARCHAR" />
+    <result column="SCHEDULENAME" property="scheduleName" jdbcType="VARCHAR"  />
+    <result column="PACKET_DATA" property="packetData" jdbcType="VARCHAR" />
+    <result column="CREATE_TIME" property="createTime" jdbcType="TIMESTAMP" />
+    <result column="CREATE_BY" property="createBy" jdbcType="VARCHAR" />
+  </resultMap>
+  
+  <insert id="insertSchedule" parameterType="com.homecoo.smarthome.domain.Schedule" >
+    insert into t_schedule (SCHEDULE_ID, XINGQI, RIQI, 
+      SHIJ, STATE, STRATEGY, PHONE_NUM, 
+      DEVICE_NO, THEME_NO, GATEWAY_NO, DEVICESTATE,SCHEDULENAME,
+      PACKET_DATA, CREATE_TIME, CREATE_BY)
+    values (#{scheduleId,jdbcType=INTEGER}, #{xingqi,jdbcType=CHAR}, #{riqi,jdbcType=VARCHAR},
+      #{shij,jdbcType=VARCHAR}, #{state,jdbcType=CHAR}, #{strategy,jdbcType=CHAR}, #{phoneNum,jdbcType=VARCHAR}, 
+      #{deviceNo,jdbcType=VARCHAR}, #{themeNo,jdbcType=VARCHAR}, #{gatewayNo,jdbcType=VARCHAR},#{deviceState,jdbcType=VARCHAR},#{scheduleName,jdbcType=VARCHAR}, 
+      #{packetData,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{createBy,jdbcType=VARCHAR}
+      )
+  </insert>
+  
+  <update id="updateSchedule" parameterType="com.homecoo.smarthome.domain.Schedule" >
+    update t_schedule 
+    <set >
+      <if test="xingqi != null" >
+        XINGQI = #{xingqi,jdbcType=CHAR},
+      </if>
+      <if test="riqi != null" >
+        RIQI = #{riqi,jdbcType=VARCHAR},
+      </if>
+      <if test="shij != null" >
+        SHIJ = #{shij,jdbcType=VARCHAR},
+      </if>
+      <if test="state != null" >
+        STATE = #{state,jdbcType=CHAR},
+      </if>
+      <if test="strategy != null" >
+        STRATEGY = #{strategy,jdbcType=CHAR},
+      </if>
+      <if test="deviceNo != null" >
+        DEVICE_NO = #{deviceNo,jdbcType=VARCHAR},
+      </if>
+      <if test="gatewayNo != null" >
+        GATEWAY_NO = #{gatewayNo,jdbcType=VARCHAR},
+      </if>
+      <if test="deviceState != null" >
+        DEVICESTATE = #{deviceState,jdbcType=VARCHAR},
+      </if>
+      <if test="scheduleName != null" >
+        SCHEDULENAME = #{scheduleName,jdbcType=VARCHAR},
+      </if>
+      <if test="packetData != null" >
+        PACKET_DATA = #{packetData,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null" >
+        CREATE_TIME = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="createBy != null" >
+        CREATE_BY = #{createBy,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where SCHEDULE_ID = #{scheduleId,jdbcType=INTEGER}
+  </update>
+
+  <delete id="deleteScheduleByPhoneNum" parameterType="String">
+  	delete from t_schedule where PHONE_NUM=#{phoneNum}
+  </delete>
+
+  <delete id="deleteScheduleByGatewayNo" parameterType="String">
+  	delete from t_schedule where GATEWAY_NO = #{gatewayNo}
+  </delete>
+ 
+  <delete id="deleteScheduleByScheduleId" parameterType="Integer">
+  	delete from t_schedule where SCHEDULE_ID = #{scheduleId}
+  </delete>
+  
+ <!--  <select id="selectScheduleByphoneNum" parameterType="String" resultMap="BaseResultMap">
+  	select * from t_schedule where PHONE_NUM=#{phoneNum} and STATE=1
+  </select> -->
+  
+   <select id="selectScheduleByphoneNum" parameterType="String" resultMap="BaseResultMap">
+  	select * from t_schedule where PHONE_NUM=#{phoneNum}
+  </select>
+  
+  <select id="selectScheduleBygatewayNo" parameterType="String" resultMap="BaseResultMap">
+  	select * from t_schedule where GATEWAY_NO=#{gatewayNo}
+  </select>
+
+  <select id="selectScheduleByDeviceNo" parameterType="String" resultMap="BaseResultMap">
+  	select * from t_schedule where DEVICE_NO = #{deviceNo}
+  </select>
+
+  <select id="selectScheduleByThemeNo" parameterType="String" resultMap="BaseResultMap">
+  	select * from t_schedule where THEME_NO = #{themeNo}
+  </select>
+  
+  <select id="getScheduleByScheduleId" parameterType="Integer" resultMap="BaseResultMap">
+  	select * from t_schedule where  SCHEDULE_ID = #{scheduleId}
+  </select>
+  
+  <select id="selectTodayAllScheduleByRiqi" parameterType="String" resultMap="BaseResultMap">
+  	select * from t_schedule where RIQI=#{riqi} and STATE != #{state} <!-- order by SHIJ ASC -->
+  </select>
+  
+  <!-- 模糊查询  -->
+  <select id="selectTodayAllScheduleByWeek" parameterType="String" resultMap="BaseResultMap">
+  	<!-- select * from t_schedule where XINGQI like #{xingqi} -->
+  	<!-- <![CDATA[SELECT * FROM t_schedule WHERE XINGQI LIKE #{xingqi}]]>   -->
+  	select * from t_schedule 
+  	<where>
+  		<if test="xingqi != null">
+  				XINGQI like #{xingqi}
+  		</if>
+  	</where>
+  </select>
+  
+  <select id="selectScheduleByRiQiShiJDeviceNo" resultMap="BaseResultMap" parameterType="com.homecoo.smarthome.domain.Schedule">
+  	select * from t_schedule where RIQI=#{riqi} and SHIJ = #{shij} and PHONE_NUM=#{phoneNum} and DEVICE_NO = #{deviceNo}
+  </select>
+  <select id="selectScheduleByRiQiShiJThemeNo" resultMap="BaseResultMap" parameterType="com.homecoo.smarthome.domain.Schedule">
+  	select * from t_schedule where RIQI=#{riqi} and SHIJ = #{shij} and PHONE_NUM=#{phoneNum} and THEME_NO = #{themeNo}
+  </select>
+  <select id="selectScheduleByXingQiShiJDeviceNo" resultMap="BaseResultMap" parameterType="com.homecoo.smarthome.domain.Schedule">
+  	select * from t_schedule where RIQI=#{riqi} and SHIJ = #{shij} and PHONE_NUM=#{phoneNum} and DEVICE_NO = #{deviceNo}
+  </select>
+  <select id="selectScheduleByXingQiShiJThemeNo" resultMap="BaseResultMap" parameterType="com.homecoo.smarthome.domain.Schedule">
+  	select * from t_schedule where RIQI=#{riqi} and SHIJ = #{shij} and PHONE_NUM=#{phoneNum} and THEME_NO = #{themeNo}
+  </select>
+  <select id="getScheduleByDeviceNoAndPhoenNum" resultMap="BaseResultMap" parameterType="com.homecoo.smarthome.domain.Schedule">
+  	select * from t_schedule where DEVICE_NO = #{deviceNo} and PHONE_NUM=#{phoneNum}
+  </select>
+  
+  <select id="getScheduleByThemeNoAndPhoenNum" resultMap="BaseResultMap" parameterType="com.homecoo.smarthome.domain.Schedule">
+  	select * from t_schedule where  PHONE_NUM=#{phoneNum} and THEME_NO = #{themeNo}
+  </select>
+  
+  <select id="getScheduleMusic" resultMap="BaseResultMap" parameterType="com.homecoo.smarthome.domain.Schedule">
+  	select * from t_schedule where PHONE_NUM=#{phoneNum} and SCHEDULENAME=#{scheduleName}
+  </select>
+  
+  <select id="getScheduleByStateAndPhoneNum" resultMap="BaseResultMap" parameterType="com.homecoo.smarthome.domain.Schedule">
+  	select * from t_schedule where PHONE_NUM=#{phoneNum} and STATE=#{state}
+  </select>
+  
+</mapper>

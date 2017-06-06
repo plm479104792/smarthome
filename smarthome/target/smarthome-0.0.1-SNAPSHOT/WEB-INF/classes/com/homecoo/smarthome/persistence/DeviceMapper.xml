@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.homecoo.smarthome.persistence.DeviceMapper" >
+  <resultMap id="BaseResultMap" type="com.homecoo.smarthome.domain.Device" >
+    <id column="DEVICE_ID" property="deviceId" jdbcType="INTEGER" />
+    <result column="DEVICE_NO" property="deviceNo" jdbcType="VARCHAR" />
+    <result column="DEVICE_TYPE_ID" property="deviceTypeId" jdbcType="INTEGER" />
+    <result column="DEVICE_TYPE_NAME" property="deviceTypeName" jdbcType="VARCHAR" />
+    <result column="DEVICE_CATEGORY_ID" property="deviceCategoryId" jdbcType="INTEGER" />
+    <result column="DEVICE_CATEGORY_NAME" property="deviceCategoryName" jdbcType="VARCHAR" />
+    <result column="DEVICE_NAME" property="deviceName" jdbcType="VARCHAR" />
+    <result column="GATEWAY_NO" property="gatewayNo" jdbcType="VARCHAR" />
+    <result column="SPACE_TYPE_ID" property="spaceTypeId" jdbcType="CHAR" />
+    <result column="SPACE_NO" property="spaceNo" jdbcType="VARCHAR" />
+    <result column="PHONE_NUM" property="phoneNum" jdbcType="VARCHAR" />
+    <result column="CREATE_TIME" property="createTime" jdbcType="TIMESTAMP" />
+    <result column="CREATE_BY" property="createBy" jdbcType="INTEGER" />
+    <result column="UPDATE_TIME" property="updateTime" jdbcType="TIMESTAMP" />
+    <result column="UPDATE_BY" property="updateBy" jdbcType="INTEGER" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    DEVICE_ID, DEVICE_NO, DEVICE_TYPE_ID, DEVICE_TYPE_NAME, DEVICE_CATEGORY_ID, DEVICE_CATEGORY_NAME, 
+    DEVICE_NAME, GATEWAY_NO, SPACE_TYPE_ID, SPACE_NO, PHONE_NUM, CREATE_TIME, CREATE_BY, 
+    UPDATE_TIME, UPDATE_BY
+  </sql>
+  
+  <select id="getDeviceByDeviceNo" parameterType="String" resultMap="BaseResultMap">
+  	select * from t_device where DEVICE_NO=#{deviceNo}
+  </select>
+  
+  <select id="getAllDeviceByGatewayNo" parameterType="String" resultMap="BaseResultMap">
+  	select * from t_device where GATEWAY_NO=#{gatewayNo}
+  </select>
+  
+  <select id="getAllDeviceByPhoneNum" parameterType="String" resultMap="BaseResultMap">
+  	select * from t_device where PHONE_NUM=#{phoneNum}
+  </select>
+  
+  <select id="getALLDeviceByPhoneNumCategoryId" resultMap="BaseResultMap" parameterType="com.homecoo.smarthome.persistence.DeviceMapper">
+  	select * from t_device where PHONE_NUM=#{phoneNum,jdbcType=VARCHAR} and DEVICE_CATEGORY_ID=#{deviceCategoryId,jdbcType=INTEGER}
+  </select>
+  
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
+    delete from t_device
+    where DEVICE_ID = #{deviceId,jdbcType=INTEGER}
+  </delete>
+  
+   <delete id="deleteByDeviceNo" parameterType="String" >
+    delete from t_device
+    where DEVICE_NO = #{deviceNo}
+  </delete>
+  
+  <insert id="insert" parameterType="com.homecoo.smarthome.domain.Device" >
+    insert into t_device (DEVICE_ID, DEVICE_NO, DEVICE_TYPE_ID, 
+      DEVICE_TYPE_NAME, DEVICE_CATEGORY_ID, DEVICE_CATEGORY_NAME, 
+      DEVICE_NAME, GATEWAY_NO, SPACE_TYPE_ID, 
+      SPACE_NO, PHONE_NUM, CREATE_TIME, 
+      CREATE_BY, UPDATE_TIME, UPDATE_BY
+      )
+    values (#{deviceId,jdbcType=INTEGER}, #{deviceNo,jdbcType=VARCHAR}, #{deviceTypeId,jdbcType=INTEGER}, 
+      #{deviceTypeName,jdbcType=VARCHAR}, #{deviceCategoryId,jdbcType=INTEGER}, #{deviceCategoryName,jdbcType=VARCHAR}, 
+      #{deviceName,jdbcType=VARCHAR}, #{gatewayNo,jdbcType=VARCHAR}, #{spaceTypeId,jdbcType=CHAR}, 
+      #{spaceNo,jdbcType=VARCHAR}, #{phoneNum,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, 
+      #{createBy,jdbcType=INTEGER}, #{updateTime,jdbcType=TIMESTAMP}, #{updateBy,jdbcType=INTEGER}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.homecoo.smarthome.domain.Device" >
+    insert into t_device
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="deviceId != null" >
+        DEVICE_ID,
+      </if>
+      <if test="deviceNo != null" >
+        DEVICE_NO,
+      </if>
+      <if test="deviceTypeId != null" >
+        DEVICE_TYPE_ID,
+      </if>
+      <if test="deviceTypeName != null" >
+        DEVICE_TYPE_NAME,
+      </if>
+      <if test="deviceCategoryId != null" >
+        DEVICE_CATEGORY_ID,
+      </if>
+      <if test="deviceCategoryName != null" >
+        DEVICE_CATEGORY_NAME,
+      </if>
+      <if test="deviceName != null" >
+        DEVICE_NAME,
+      </if>
+      <if test="gatewayNo != null" >
+        GATEWAY_NO,
+      </if>
+      <if test="spaceTypeId != null" >
+        SPACE_TYPE_ID,
+      </if>
+      <if test="spaceNo != null" >
+        SPACE_NO,
+      </if>
+      <if test="phoneNum != null" >
+        PHONE_NUM,
+      </if>
+      <if test="createTime != null" >
+        CREATE_TIME,
+      </if>
+      <if test="createBy != null" >
+        CREATE_BY,
+      </if>
+      <if test="updateTime != null" >
+        UPDATE_TIME,
+      </if>
+      <if test="updateBy != null" >
+        UPDATE_BY,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="deviceId != null" >
+        #{deviceId,jdbcType=INTEGER},
+      </if>
+      <if test="deviceNo != null" >
+        #{deviceNo,jdbcType=VARCHAR},
+      </if>
+      <if test="deviceTypeId != null" >
+        #{deviceTypeId,jdbcType=INTEGER},
+      </if>
+      <if test="deviceTypeName != null" >
+        #{deviceTypeName,jdbcType=VARCHAR},
+      </if>
+      <if test="deviceCategoryId != null" >
+        #{deviceCategoryId,jdbcType=INTEGER},
+      </if>
+      <if test="deviceCategoryName != null" >
+        #{deviceCategoryName,jdbcType=VARCHAR},
+      </if>
+      <if test="deviceName != null" >
+        #{deviceName,jdbcType=VARCHAR},
+      </if>
+      <if test="gatewayNo != null" >
+        #{gatewayNo,jdbcType=VARCHAR},
+      </if>
+      <if test="spaceTypeId != null" >
+        #{spaceTypeId,jdbcType=CHAR},
+      </if>
+      <if test="spaceNo != null" >
+        #{spaceNo,jdbcType=VARCHAR},
+      </if>
+      <if test="phoneNum != null" >
+        #{phoneNum,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null" >
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="createBy != null" >
+        #{createBy,jdbcType=INTEGER},
+      </if>
+      <if test="updateTime != null" >
+        #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateBy != null" >
+        #{updateBy,jdbcType=INTEGER},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.homecoo.smarthome.domain.Device" >
+    update t_device
+    <set >
+      <if test="deviceNo != null" >
+        DEVICE_NO = #{deviceNo,jdbcType=VARCHAR},
+      </if>
+      <if test="deviceTypeId != null" >
+        DEVICE_TYPE_ID = #{deviceTypeId,jdbcType=INTEGER},
+      </if>
+      <if test="deviceTypeName != null" >
+        DEVICE_TYPE_NAME = #{deviceTypeName,jdbcType=VARCHAR},
+      </if>
+      <if test="deviceCategoryId != null" >
+        DEVICE_CATEGORY_ID = #{deviceCategoryId,jdbcType=INTEGER},
+      </if>
+      <if test="deviceCategoryName != null" >
+        DEVICE_CATEGORY_NAME = #{deviceCategoryName,jdbcType=VARCHAR},
+      </if>
+      <if test="deviceName != null" >
+        DEVICE_NAME = #{deviceName,jdbcType=VARCHAR},
+      </if>
+      <if test="gatewayNo != null" >
+        GATEWAY_NO = #{gatewayNo,jdbcType=VARCHAR},
+      </if>
+      <if test="spaceTypeId != null" >
+        SPACE_TYPE_ID = #{spaceTypeId,jdbcType=CHAR},
+      </if>
+      <if test="spaceNo != null" >
+        SPACE_NO = #{spaceNo,jdbcType=VARCHAR},
+      </if>
+      <if test="phoneNum != null" >
+        PHONE_NUM = #{phoneNum,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null" >
+        CREATE_TIME = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="createBy != null" >
+        CREATE_BY = #{createBy,jdbcType=INTEGER},
+      </if>
+      <if test="updateTime != null" >
+        UPDATE_TIME = #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateBy != null" >
+        UPDATE_BY = #{updateBy,jdbcType=INTEGER},
+      </if>
+    </set>
+    where DEVICE_ID = #{deviceId,jdbcType=INTEGER} and  GATEWAY_NO = #{gatewayNo,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.homecoo.smarthome.domain.Device" >
+    update t_device
+    set   DEVICE_TYPE_ID = #{deviceTypeId,jdbcType=INTEGER},
+      DEVICE_TYPE_NAME = #{deviceTypeName,jdbcType=VARCHAR},
+      DEVICE_CATEGORY_ID = #{deviceCategoryId,jdbcType=INTEGER},
+      DEVICE_CATEGORY_NAME = #{deviceCategoryName,jdbcType=VARCHAR},
+      DEVICE_NAME = #{deviceName,jdbcType=VARCHAR},
+      GATEWAY_NO = #{gatewayNo,jdbcType=VARCHAR},
+      SPACE_TYPE_ID = #{spaceTypeId,jdbcType=CHAR},
+      SPACE_NO = #{spaceNo,jdbcType=VARCHAR},
+      PHONE_NUM = #{phoneNum,jdbcType=VARCHAR},
+      CREATE_TIME = #{createTime,jdbcType=TIMESTAMP},
+      CREATE_BY = #{createBy,jdbcType=INTEGER},
+      UPDATE_TIME = #{updateTime,jdbcType=TIMESTAMP},
+      UPDATE_BY = #{updateBy,jdbcType=INTEGER}
+    where DEVICE_NO = #{deviceNo,jdbcType=VARCHAR}
+  </update>
+</mapper>

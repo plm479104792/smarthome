@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.homecoo.smarthome.persistence.GatewayMapper" >
+  <resultMap id="BaseResultMap" type="com.homecoo.smarthome.domain.Gateway" >
+    <id column="GATEWAY_NO" property="gatewayNo" jdbcType="VARCHAR" />
+    <result column="GATEWAY_IP" property="gatewayIp" jdbcType="VARCHAR" />
+    <result column="GATEWAY_PWD" property="gatewayPwd" jdbcType="VARCHAR" />
+    <result column="CREATE_TIME" property="createTime" jdbcType="TIMESTAMP" />
+    <result column="CREATE_BY" property="createBy" jdbcType="INTEGER" />
+    <result column="UPDATE_TIME" property="updateTime" jdbcType="TIMESTAMP" />
+    <result column="UPDATE_BY" property="updateBy" jdbcType="INTEGER" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    GATEWAY_NO, GATEWAY_IP, GATEWAY_PWD, CREATE_TIME, CREATE_BY, UPDATE_TIME, UPDATE_BY
+  </sql>
+  <select id="selectByGatewayNo" resultMap="BaseResultMap" parameterType="String" >
+    select 
+    <include refid="Base_Column_List" />
+    from t_gateway
+    where GATEWAY_NO = #{gatewayNo,jdbcType=VARCHAR}
+  </select>
+  
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String" >
+    delete from t_gateway
+    where GATEWAY_NO = #{gatewayNo,jdbcType=VARCHAR}
+  </delete>
+  <insert id="insert" parameterType="com.homecoo.smarthome.domain.Gateway" >
+    insert into t_gateway (GATEWAY_NO, GATEWAY_IP, GATEWAY_PWD, 
+      CREATE_TIME, CREATE_BY, UPDATE_TIME, 
+      UPDATE_BY)
+    values (#{gatewayNo,jdbcType=VARCHAR}, #{gatewayIp,jdbcType=VARCHAR}, #{gatewayPwd,jdbcType=VARCHAR}, 
+      #{createTime,jdbcType=TIMESTAMP}, #{createBy,jdbcType=INTEGER}, #{updateTime,jdbcType=TIMESTAMP}, 
+      #{updateBy,jdbcType=INTEGER})
+  </insert>
+  <insert id="insertSelective" parameterType="com.homecoo.smarthome.domain.Gateway" >
+    insert into t_gateway
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="gatewayNo != null" >
+        GATEWAY_NO,
+      </if>
+      <if test="gatewayIp != null" >
+        GATEWAY_IP,
+      </if>
+      <if test="gatewayPwd != null" >
+        GATEWAY_PWD,
+      </if>
+      <if test="createTime != null" >
+        CREATE_TIME,
+      </if>
+      <if test="createBy != null" >
+        CREATE_BY,
+      </if>
+      <if test="updateTime != null" >
+        UPDATE_TIME,
+      </if>
+      <if test="updateBy != null" >
+        UPDATE_BY,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="gatewayNo != null" >
+        #{gatewayNo,jdbcType=VARCHAR},
+      </if>
+      <if test="gatewayIp != null" >
+        #{gatewayIp,jdbcType=VARCHAR},
+      </if>
+      <if test="gatewayPwd != null" >
+        #{gatewayPwd,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null" >
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="createBy != null" >
+        #{createBy,jdbcType=INTEGER},
+      </if>
+      <if test="updateTime != null" >
+        #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateBy != null" >
+        #{updateBy,jdbcType=INTEGER},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.homecoo.smarthome.domain.Gateway" >
+    update t_gateway
+    <set >
+      <if test="gatewayIp != null" >
+        GATEWAY_IP = #{gatewayIp,jdbcType=VARCHAR},
+      </if>
+      <if test="gatewayPwd != null" >
+        GATEWAY_PWD = #{gatewayPwd,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null" >
+        CREATE_TIME = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="createBy != null" >
+        CREATE_BY = #{createBy,jdbcType=INTEGER},
+      </if>
+      <if test="updateTime != null" >
+        UPDATE_TIME = #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateBy != null" >
+        UPDATE_BY = #{updateBy,jdbcType=INTEGER},
+      </if>
+    </set>
+    where GATEWAY_NO = #{gatewayNo,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByGatewayNo" parameterType="com.homecoo.smarthome.domain.Gateway" >
+    update t_gateway
+    set GATEWAY_IP = #{gatewayIp,jdbcType=VARCHAR},
+      GATEWAY_PWD = #{gatewayPwd,jdbcType=VARCHAR},
+      CREATE_TIME = #{createTime,jdbcType=TIMESTAMP},
+      CREATE_BY = #{createBy,jdbcType=INTEGER},
+      UPDATE_TIME = #{updateTime,jdbcType=TIMESTAMP},
+      UPDATE_BY = #{updateBy,jdbcType=INTEGER}
+    where GATEWAY_NO = #{gatewayNo,jdbcType=VARCHAR}
+  </update>
+</mapper>

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:cache="http://www.springframework.org/schema/cache"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation=" 
+	http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd  
+	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache.xsd">
+
+
+	<cache:annotation-driven />
+	<context:annotation-config />
+
+	<!-- enable transaction demarcation with annotations -->
+	<tx:annotation-driven transaction-manager="transactionManager" />
+
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<!-- <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource"
+		destroy-method="close"> -->
+		<!-- 此为c3p0在spring中直接配置datasource c3p0是一个开源的JDBC连接池 -->
+		<property name="driverClass" value="com.mysql.jdbc.Driver" />
+		<property name="jdbcUrl"
+			value="jdbc:mysql://localhost:3306/homecoodb?useUnicode=true&amp;characterEncoding=UTF-8" />
+		<property name="user" value="root" />
+		<property name="password" value="root" />
+		<property name="maxPoolSize" value="50"></property>
+		<property name="minPoolSize" value="10"></property>
+		<property name="initialPoolSize" value="10"></property>
+		<property name="maxIdleTime" value="25000"></property>
+		<property name="acquireIncrement" value="1"></property>
+		<property name="acquireRetryAttempts" value="30"></property>
+		<property name="acquireRetryDelay" value="1000"></property>
+		<property name="testConnectionOnCheckin" value="true"></property>
+		<property name="idleConnectionTestPeriod" value="18000"></property>
+		<property name="checkoutTimeout" value="5000"></property>
+		<!-- <property name="automaticTestTable" value="t_c3p0"></property> -->
+		<property name="preferredTestQuery"><value>select id from test where id=1</value></property>
+	</bean>
+
+	<!-- transaction manager, use JtaTransactionManager for global tx -->
+	<bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+     <!-- timeMannagerService 注册 spring (定时任务) -->
+		<bean id="timeManagerService" class="com.homecoo.smarthome.service.TimeManagerService"
+		init-method="start" /> 
+		
+	<bean id="SpringUtil" class="com.homecoo.smarthome.util.SpringUtil"/>
+		
+	<!-- define the SqlSessionFactory -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="typeAliasesPackage" value="com.homecoo.smarthome.domain" />
+	</bean>
+
+	<!-- scan for mappers and let them be autowired -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.homecoo.smarthome.persistence" />
+	</bean>
+
+	<!-- file upload -->
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="maxUploadSize" value="20480000" />
+	</bean>
+
+
+	<!--ehcache -->
+	<bean id="cacheManager" class="org.springframework.cache.ehcache.EhCacheCacheManager"
+		p:cacheManager-ref="ehcacheFactory" />
+
+	<bean id="ehcacheFactory"
+		class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean"
+		p:configLocation="classpath:ehcache.xml" p:shared="true" />
+	<context:component-scan base-package="com.homecoo.smarthome">
+		<context:exclude-filter type="annotation"
+			expression="org.springframework.stereotype.Controller" />
+	</context:component-scan>
+
+	<!-- 	Quartz 配置 -->
+	<!-- 任务明细bean,对quartz任务包装 -->
+	<bean id="jobDetailBean" class="org.springframework.scheduling.quartz.JobDetailBean">
+        <property name="jobClass"    value="com.homecoo.smarthome.trigger.LoadTodaySchedule" />
+    </bean>
+    
+	<!-- cron触发器bean,设置任务的调度策略的 -->
+    <bean id="cronTriggerBean" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="jobDetailBean" />
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>1 0 0 * * ?</value>
+          <!--   1 0 0 * * ?   每天凌晨0:0:1 触发 -->
+		  <!--   0/5 * * * * ?   每5s 触发 -->
+            <!-- 0 0/1 * * * ?    每分钟执行一次 --> 
+        </property>
+    </bean>
+    
+    <!-- 调度器工厂bean,激活触发器,启动quartz任务的 -->
+  <bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="triggers">
+            <ref bean="cronTriggerBean" />
+        </property>
+    </bean>
+
+</beans>
