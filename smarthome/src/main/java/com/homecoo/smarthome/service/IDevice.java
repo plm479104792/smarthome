@@ -23,5 +23,5 @@ public interface IDevice {
 
 	void updateDeviceStateRecord(DeviceStateRecord deviceStateRecord);
 
-	boolean getDeviceByDeviceNo(String deviceNo);
+	boolean getDeviceByDeviceNo(Device device);
 }

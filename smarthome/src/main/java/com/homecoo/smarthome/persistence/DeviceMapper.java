@@ -23,7 +23,7 @@ public interface DeviceMapper {
     
     List<Device> getAllDeviceByGatewayNo(@Param("gatewayNo")String gatewayNo);
     
-    List<Device> getDeviceByDeviceNo(@Param("deviceNo")String deviceNo);
+    List<Device> getDeviceByDeviceNo(Device device);
     
     int updateByPrimaryKey(Device record);
     

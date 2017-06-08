@@ -25,7 +25,7 @@
   </sql>
   
   <select id="getDeviceByDeviceNo" parameterType="String" resultMap="BaseResultMap">
-  	select * from t_device where DEVICE_NO=#{deviceNo}
+  	select * from t_device where DEVICE_NO=#{deviceNo} and GATEWAY_NO=#{gatewayNo}
   </select>
   
   <select id="getAllDeviceByGatewayNo" parameterType="String" resultMap="BaseResultMap">
@@ -216,7 +216,6 @@
       DEVICE_CATEGORY_ID = #{deviceCategoryId,jdbcType=INTEGER},
       DEVICE_CATEGORY_NAME = #{deviceCategoryName,jdbcType=VARCHAR},
       DEVICE_NAME = #{deviceName,jdbcType=VARCHAR},
-      GATEWAY_NO = #{gatewayNo,jdbcType=VARCHAR},
       SPACE_TYPE_ID = #{spaceTypeId,jdbcType=CHAR},
       SPACE_NO = #{spaceNo,jdbcType=VARCHAR},
       PHONE_NUM = #{phoneNum,jdbcType=VARCHAR},
@@ -224,6 +223,6 @@
       CREATE_BY = #{createBy,jdbcType=INTEGER},
       UPDATE_TIME = #{updateTime,jdbcType=TIMESTAMP},
       UPDATE_BY = #{updateBy,jdbcType=INTEGER}
-    where DEVICE_NO = #{deviceNo,jdbcType=VARCHAR}
+    where DEVICE_NO = #{deviceNo,jdbcType=VARCHAR} and GATEWAY_NO = #{gatewayNo,jdbcType=VARCHAR}
   </update>
 </mapper>

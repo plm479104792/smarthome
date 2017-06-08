@@ -151,9 +151,9 @@ public class AppDeviceController {
 	@RequestMapping(value = "appSyncDeviceInfo", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
 	public String appSyncDeviceInfo(String deviceJson, String deviceSpaceJson,
 			String versionJson) {
-		System.out.println("设备表："+deviceJson);
-		System.out.println("用户配置表："+deviceSpaceJson);
-		System.out.println("版本信息表:"+versionJson);
+//		System.out.println("设备表："+deviceJson);
+//		System.out.println("用户配置表："+deviceSpaceJson);
+//		System.out.println("版本信息表:"+versionJson);
 		Message msg = new Message();
 		try {
 		List<DeviceDtoApp> deviceDtoAppList = JSON
@@ -177,8 +177,7 @@ public class AppDeviceController {
 			while (iterator.hasNext()) {
 				DeviceDtoApp deviceDtoApp = iterator.next();
 				DeviceDto deviceDto=DeviceUtil.DeviceDtoappToDeviceDto(deviceDtoApp);
-				boolean b = deviceService.getDeviceByDeviceNo(deviceDto.getDevice()
-						.getDeviceNo());
+				boolean b = deviceService.getDeviceByDeviceNo(deviceDto.getDevice());   //需要根据网关号和deviceNo判断
 				if (b) {
 					deviceService.updateDevice(deviceDto.getDevice());
 				} 
@@ -242,7 +241,7 @@ public class AppDeviceController {
 			msg=MessageUtils.appGetDeviceInfoResp(NeedConstant.ERROR_MESSAGE,null,null,null);
 		}
 		String respjson = JSONObject.toJSONString(msg);
-		System.out.println(respjson);
+		System.out.println(msg.getDeviceDtoAppList().toString());
 //		System.out.println(JSONObject.parseObject(respjson, Message.class).getAppVersion());
 		return respjson;
 	}

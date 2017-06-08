@@ -68,8 +68,8 @@ public class DeviceServiceImpl implements IDevice{
 	}
 
 	@Override
-	public boolean getDeviceByDeviceNo(String deviceNo) {
-		List<Device> list=deviceMapper.getDeviceByDeviceNo(deviceNo);
+	public boolean getDeviceByDeviceNo(Device device) {
+		List<Device> list=deviceMapper.getDeviceByDeviceNo(device);
 		if (list.size()>0) {
 			return true;
 		}else{
