@@ -218,7 +218,7 @@ public class AppDeviceController {
 	 * @return respjson
 	 * */
 	@ResponseBody
-	@RequestMapping(value = "appGetDeviceInfo", method = RequestMethod.GET, produces = { "application/json;charset=UTF-8" })
+	@RequestMapping(value = "appGetDeviceInfo", method = RequestMethod.POST, produces = { "application/json;charset=UTF-8" })
 	public String appGetDeviceInfo(String phonenum,String gatewayNo) {
 		Message msg = new Message();
 		try {
